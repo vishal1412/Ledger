@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Ledger & Stock Management</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="./css/design-system.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/app.css">
+  
+  <!-- Tesseract.js for OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="app-container" class="app-container">
+    <!-- Navigation will be inserted here -->
+    
+    <!-- Main Content Area -->
+    <div class="main-content" id="main-content">
+      <!-- Page content will be rendered here -->
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading Application...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Infrastructure Scripts -->
+  <script src="./js/core/storage.js"></script>
+  <script src="./js/core/calculator.js"></script>
+  <script src="./js/core/ocr.js"></script>
+  <script src="./js/core/export.js"></script>
+
+  <!-- Service Layer Scripts -->
+  <script src="./js/services/party.js"></script>
+  <script src="./js/services/stock.js"></script>
+  <script src="./js/services/purchase.js"></script>
+  <script src="./js/services/sales.js"></script>
+  <script src="./js/services/payment.js"></script>
+
+  <!-- Component Scripts -->
+  <script src="./js/components/modal.js"></script>
+  <script src="./js/components/camera.js"></script>
+  <script src="./js/components/ocr-preview.js"></script>
+  <script src="./js/components/navigation.js"></script>
+  <script src="./js/components/forms.js"></script>
+
+  <!-- Page Scripts -->
+  <script src="./js/pages/dashboard.js"></script>
+  <script src="./js/pages/parties.js"></script>
+  <script src="./js/pages/vendors.js"></script>
+  <script src="./js/pages/customers.js"></script>
+  <script src="./js/pages/stock.js"></script>
+
+  <!-- Main App Script -->
+  <script src="./js/app.js"></script>
+</body>
+</html>
