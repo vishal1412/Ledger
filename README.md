@@ -2,191 +2,89 @@
 
 A comprehensive web-based business ledger and stock management system with OCR-based document processing, automated calculations, and detailed financial tracking.
 
-## 📋 Features
+## 🌟 Key Features
 
 ### Core Modules
-- **Party Master**: Manage all vendors and customers
-- **OCR Document Processing**: Camera/upload photos with auto-text extraction
-- **Vendor Management**: Purchase entry, payments, and payable tracking
-- **Customer Management**: Sales entry with bill/cash split, payment collection
-- **Stock Management**: Auto-updated inventory from purchases/sales
-- **Dashboards**: Real-time business overview and analytics
+- **Party Master**: Manage all vendors and customers.
+- **OCR Document Processing**: Camera/upload photos with auto-text extraction (Tesseract.js).
+- **Vendor Management**: Purchase entry, payments, and payable tracking.
+- **Customer Management**: Sales entry with bill/cash split, payment collection.
+- **Stock Management**: Auto-updated inventory from purchases/sales.
+- **Dashboards**: Real-time business overview and analytics.
 
-### Key Capabilities
-- ✅ Auto-calculation validation and correction
-- ✅ OCR-based bill/invoice entry with Tesseract.js
-- ✅ Camera capture and file upload support
-- ✅ Excel export for all modules
-- ✅ Local storage (JSON-based)
-- ✅ Low stock alerts
-- ✅ Transaction audit trails
-- ✅ Responsive design
+### 💾 Data Persistence (New!)
+Unlike typical web apps, this project includes a lightweight **Node.js Backend** that allows you to:
+- **Save JSON data** directly to your hard drive (`data/` folder).
+- **Save images** directly to your hard drive (`images/` folder).
+- **Access remotely** via tunnels while keeping data local.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Modern web browser (Chrome, Edge, Firefox, Safari)
-- Local web server (for camera access)
+- [Node.js](https://nodejs.org/) installed on your computer.
 
 ### Installation
 
-1. Navigate to the application directory:
-   ```bash
-   cd business-ledger
-   ```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/vishal1412/Ledger.git
+    cd Ledger
+    ```
 
-2. Start a local web server:
-   
-   **Option 1: Using Python**
-   ```bash
-   python -m http.server 8000
-   ```
-   
-   **Option 2: Using Node.js**
-   ```bash
-   npx serve
-   ```
-   
-   **Option 3: Using PHP**
-   ```bash
-   php -S localhost:8000
-   ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-3. Open your browser and navigate to:
-   ```
-   http://localhost:8000
-   ```
+### Running the Application
 
-## 📖 Usage Guide
+**Option A: One-Click Start (Windows)**
+Double-click `start.bat` in the project folder.
 
-### 1. Party Master
-- Click "Parties" in the sidebar
-- Add vendors and customers with opening balances
-- Manage contact information and addresses
+**Option B: Command Line**
+```bash
+node server.js
+```
 
-### 2. Adding Purchases (Vendors)
-- Go to "Vendors" page
-- Click "Add Purchase" or select a vendor
-- Choose: Camera / Upload / Manual
-- OCR will extract and validate data
-- Review and confirm auto-corrections
-- Save - stock and payables update automatically
+The application will start at: **http://localhost:3000**
 
-### 3. Recording Sales (Customers)
-- Go to "Customers" page
-- Click "Add Sale" or select a customer
-- Use camera/upload for OCR processing
-- Split amount into Bill and Cash
-- Save - stock and receivables update automatically
+## 🌍 Accessing Remotely
+To access your ledger from your phone or share with others ensuring data saves to your computer:
 
-### 4. Recording Payments
-- **Vendor Payment**: Click "Payment" button next to vendor
-- **Customer Payment**: Click "Receive" button next to customer
-- Enter amount and payment mode (Cash/Bank)
-- For customers, select payment type (Bill/Cash)
-
-### 5. Stock Management
-- Auto-updated from purchases and sales
-- View item-wise movements
-- Monitor low stock alerts
-- Export to Excel
-
-## 🎨 Tech Stack
-
-- **Frontend**: Vanilla HTML/CSS/JavaScript (ES6+)
-- **OCR**: Tesseract.js v5 (client-side)
-- **Excel Export**: SheetJS (xlsx library)
-- **Storage**: LocalStorage (JSON)
-- **Design**: Modern CSS with gradients and animations
+1.  Start the app (`node server.js` or `start.bat`).
+2.  Open a new terminal and run:
+    ```bash
+    npx -y localtunnel --port 3000
+    ```
+3.  Use the provided URL to access the app from anywhere.
 
 ## 📁 Project Structure
 
 ```
 business-ledger/
-├── index.html              # Main application entry
-├── css/
-│   ├── design-system.css   # Design tokens and utilities
-│   ├── components.css      # Reusable UI components
-│   └── app.css            # Application-specific styles
+├── data/                  # 💾 JSON files (parties.json, sales.json, etc.)
+├── images/                # 📸 Uploaded invoice images
+├── server.js              # ⚙️ Backend server for file operations
+├── start.bat              # 🚀 Windows launcher script
+├── index.html             # Main application entry
 ├── js/
-│   ├── core/              # Core infrastructure
-│   ├── services/          # Business logic layer
-│   ├── components/        # UI components
-│   ├── pages/             # Application pages
-│   └── app.js             # Main application
-├── data/                  # JSON storage (auto-created)
-└── images/                # Document photos (auto-created)
+│   ├── core/              # Core infrastructure (StorageManager, OCR)
+│   ├── services/          # Business logic
+│   └── components/        # UI components
+└── css/                   # Stylesheets
 ```
 
-## 🔒 Data Storage
+## 🔒 Data Storage Details
 
-All data is stored locally in browser's LocalStorage:
-- `business_ledger_parties` - Vendors and customers
-- `business_ledger_purchases` - Purchase transactions
-- `business_ledger_sales` - Sales transactions
-- `business_ledger_payments` - Payment records
-- `business_ledger_stock` - Stock items
-- `image_*` - Document photos (base64)
+-   **Frontend**: The app loads data from the server on startup and caches it for speed.
+-   **Backend**: When you save (e.g., adding a sale), the server writes it to `data/sales.json`.
+-   **Images**: Images are uploaded to `images/YYYY-MM/` folder.
 
 ## ⚠️ Important Notes
 
-### OCR Accuracy
-- Works best with printed text and good lighting
-- May require manual correction for handwritten text
-- Auto-correction highlights changes for review
-
-### Browser Compatibility
-- Camera requires HTTPS or localhost
-- Works on desktop and mobile browsers
-- File System Access API may have limited support
-
-### Data Backup
-- Data is stored locally only
-- Use Excel export for backups
-- No multi-user support
-- Consider browser cache clearing
-
-### Performance
-- Suitable for small to medium businesses
-- Performance may degrade with thousands of records
-- Consider database migration for production use
-
-## 🎯 Best Practices
-
-1. **Regular Backups**: Export data to Excel regularly
-2. **Image Quality**: Use good lighting for OCR
-3. **Review Data**: Always review OCR auto-corrections
-4. **Stock Check**: Monitor low stock alerts
-5. **Reconciliation**: Verify ledger balances periodically
-
-## 🐛 Troubleshooting
-
-### Camera Not Working
-- Ensure you're using HTTPS or localhost
-- Check browser permissions
-- Try uploading file instead
-
-### OCR Not Accurate
-- Improve lighting and image quality
-- Ensure text is clear and not skewed
-- Use manual correction if needed
-
-### Data Not Saving
-- Check browser's LocalStorage limit
-- Clear old/unnecessary data
-- Export and import data if needed
+-   **Backup**: Regularly back up your `data/` and `images/` folders.
+-   **GitHub Pages**: If you deploy this to GitHub Pages (static hosting), the file saving feature **will not work**. It will revert to browser-only storage because static sites cannot write to your server files. To use file persistence, you must run `node server.js` locally.
 
 ## 📝 License
 
 This application is provided as-is for business use.
-
-## 🙏 Credits
-
-- **OCR**: Tesseract.js
-- **Excel Export**: SheetJS
-- **Icons**: Unicode emoji
-- **Fonts**: Google Fonts (Inter)
-
----
-
-**Note**: This is a client-side application. For production use with multiple users or large data volumes, consider implementing a proper backend with database storage.
