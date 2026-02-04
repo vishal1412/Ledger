@@ -1,8 +1,54 @@
+# Dependencies
 node_modules/
-.DS_Store
-*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
 .env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Vercel
+.vercel
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+dist/
+build/
+.cache/
+
+# Temporary files
+tmp/
+temp/
+
+# Data files (local storage)
 data/*.json
-images/*
 !data/.gitkeep
+
+# User uploaded files
+images/*
 !images/.gitkeep
+uploads/
+
+# Database backups
+*.sql
+*.db
+backups/
+.env*.local
