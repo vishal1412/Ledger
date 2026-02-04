@@ -4,7 +4,7 @@
 
 class StorageManager {
   constructor() {
-    this.serverUrl = 'http://localhost:3000/api';
+    this.serverUrl = 'https://ledger-kappa-sage.vercel.app/api';
     this.isOnline = false;
     this.imagePath = './images/'; // Default fallback
 
