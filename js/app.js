@@ -93,13 +93,20 @@ class App {
         
         console.log(`Hash changed to: ${hash}`);
         
-        // Update navigation and load page
+        // Update navigation active state
         if (this.navigation) {
             this.navigation.currentPage = hash;
-            this.navigation.navigate(hash);
-        } else {
-            this.loadPage(hash);
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.dataset.page === hash) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
         }
+        
+        // Load the page directly
+        this.loadPage(hash);
     }
 
     // Load page
@@ -122,9 +129,6 @@ class App {
             // Render page
             page.render(container);
             this.currentPage = pageName;
-
-            // Update URL hash
-            window.location.hash = pageName;
 
             console.log(`✓ Page ${pageName} rendered successfully`);
         } catch (error) {
