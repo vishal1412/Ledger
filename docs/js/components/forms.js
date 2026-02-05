@@ -149,6 +149,86 @@ class Forms {
     `;
     }
 
+    // Create manual purchase form
+    static createManualPurchaseForm(vendor) {
+        return `
+      <form id="manual-purchase-form">
+        <div class="alert alert-info">
+          <strong>${vendor.name}</strong>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Purchase Date</label>
+          <input type="date" class="form-input" id="purchase-date" 
+                 value="${new Date().toISOString().split('T')[0]}" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Items</label>
+          <div id="items-container">
+            <div class="item-row" data-item-index="0">
+              <input type="text" class="form-input" placeholder="Item name" data-field="name" required />
+              <input type="number" class="form-input" placeholder="Qty" data-field="quantity" min="0.01" step="0.01" required />
+              <input type="number" class="form-input" placeholder="Rate" data-field="rate" min="0.01" step="0.01" required />
+              <input type="number" class="form-input" placeholder="Amount" data-field="amount" readonly />
+              <button type="button" class="btn btn-sm btn-ghost remove-item-btn">✕</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline mt-sm" id="add-item-btn">+ Add Item</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Total Amount</label>
+          <input type="number" step="0.01" class="form-input" id="purchase-total" 
+                 required min="0" readonly />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="purchase-notes" placeholder="Optional notes"></textarea>
+        </div>
+      </form>
+      
+      <style>
+        .item-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr auto;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          align-items: center;
+        }
+      </style>
+    `;
+    }
+
+    // Get manual purchase form data
+    static getManualPurchaseFormData() {
+        const items = [];
+        const itemRows = document.querySelectorAll('#items-container .item-row');
+        
+        itemRows.forEach(row => {
+            const name = row.querySelector('[data-field="name"]').value;
+            const quantity = parseFloat(row.querySelector('[data-field="quantity"]').value) || 0;
+            const rate = parseFloat(row.querySelector('[data-field="rate"]').value) || 0;
+            
+            if (name && quantity > 0 && rate > 0) {
+                items.push({
+                    name: name.trim(),
+                    quantity: quantity,
+                    rate: rate,
+                    amount: quantity * rate
+                });
+            }
+        });
+        
+        return {
+            date: document.getElementById('purchase-date').value,
+            items: items,
+            total: parseFloat(document.getElementById('purchase-total').value) || 0,
+            notes: document.getElementById('purchase-notes').value
+        };
+    }
+
     // Get payment form data
     static getPaymentFormData() {
         return {

@@ -51,16 +51,36 @@ class VendorsPage {
         <div class="card-header">
           <h3 class="card-title">Vendor List</h3>
         </div>
-        <div class="card-body">${this.renderVendorsList(vendors)}</div>
+        <div class="card-body">${await this.renderVendorsList(vendors)}</div>
       </div>
     `;
 
     this.setupEventListeners();
   }
 
-  renderVendorsList(vendors) {
+  async renderVendorsList(vendors) {
     if (vendors.length === 0) {
       return '<div class="empty-state"><p>No vendors yet. Add vendors from Party Master.</p></div>';
+    }
+
+    const rows = [];
+    for (const vendor of vendors) {
+      const balance = await this.partyService.calculatePartyBalance(vendor.id);
+      const purchases = await this.purchaseService.getPurchasesByVendor(vendor.id);
+      const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
+
+      rows.push(`
+        <tr>
+          <td class="font-medium">${vendor.name}</td>
+          <td>${this.calculator.formatCurrency(totalPurchases)}</td>
+          <td class="font-bold text-danger">${this.calculator.formatCurrency(balance)}</td>
+          <td>
+            <button class="btn btn-sm btn-outline add-vendor-purchase-btn" data-id="${vendor.id}">+ Purchase</button>
+            <button class="btn btn-sm btn-success add-payment-btn" data-id="${vendor.id}">💵 Payment</button>
+            <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${vendor.id}">Ledger</button>
+          </td>
+        </tr>
+      `);
     }
 
     return `
@@ -75,24 +95,7 @@ class VendorsPage {
             </tr>
           </thead>
           <tbody>
-            ${vendors.map(vendor => {
-      const balance = this.partyService.calculatePartyBalance(vendor.id);
-      const purchases = this.purchaseService.getPurchasesByVendor(vendor.id);
-      const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
-
-      return `
-                <tr>
-                  <td class="font-medium">${vendor.name}</td>
-                  <td>${this.calculator.formatCurrency(totalPurchases)}</td>
-                  <td class="font-bold text-danger">${this.calculator.formatCurrency(balance)}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline add-vendor-purchase-btn" data-id="${vendor.id}">+ Purchase</button>
-                    <button class="btn btn-sm btn-success add-payment-btn" data-id="${vendor.id}">💵 Payment</button>
-                    <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${vendor.id}">Ledger</button>
-                  </td>
-                </tr>
-              `;
-    }).join('')}
+            ${rows.join('')}
           </tbody>
         </table>
       </div>
@@ -132,30 +135,31 @@ class VendorsPage {
   }
 
   showVendorSelectionModal() {
-    const vendors = this.partyService.getVendors();
-    const modal = new Modal({
-      title: 'Select Vendor',
-      content: `
-        <div class="form-group">
-          <label class="form-label">Choose Vendor</label>
-          <select class="form-select" id="vendor-select">
-            ${vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('')}
-          </select>
-        </div>
-      `
-    });
+    this.partyService.getVendors().then(vendors => {
+      const modal = new Modal({
+        title: 'Select Vendor',
+        content: `
+          <div class="form-group">
+            <label class="form-label">Choose Vendor</label>
+            <select class="form-select" id="vendor-select">
+              ${vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('')}
+            </select>
+          </div>
+        `
+      });
 
-    modal.open();
-    modal.addFooter([
-      { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
-      {
-        text: 'Next', className: 'btn btn-primary', onClick: () => {
-          const vendorId = document.getElementById('vendor-select').value;
-          modal.close();
-          this.showPurchaseInputModal(vendorId);
+      modal.open();
+      modal.addFooter([
+        { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+        {
+          text: 'Next', className: 'btn btn-primary', onClick: () => {
+            const vendorId = document.getElementById('vendor-select').value;
+            modal.close();
+            this.showPurchaseInputModal(vendorId);
+          }
         }
-      }
-    ]);
+      ]);
+    });
   }
 
   showPurchaseInputModal(vendorId) {
@@ -184,8 +188,7 @@ class VendorsPage {
 
     document.getElementById('manual-btn').addEventListener('click', () => {
       modal.close();
-      // Would open manual entry form (simplified for brevity)
-      Modal.alert('Manual Entry', 'Manual entry form would open here. Use Camera/Upload for OCR.');
+      this.showManualPurchaseForm(vendorId);
     });
   }
 
@@ -209,6 +212,116 @@ class VendorsPage {
     }
   }
 
+  async showManualPurchaseForm(vendorId) {
+    const vendor = await this.partyService.getPartyById(vendorId);
+    const modal = new Modal({
+      title: 'Manual Purchase Entry',
+      size: 'large',
+      content: Forms.createManualPurchaseForm(vendor)
+    });
+
+    modal.open();
+
+    // Setup item row calculations
+    const setupItemRow = (row) => {
+      const qtyInput = row.querySelector('[data-field="quantity"]');
+      const rateInput = row.querySelector('[data-field="rate"]');
+      const amountInput = row.querySelector('[data-field="amount"]');
+      const removeBtn = row.querySelector('.remove-item-btn');
+
+      const calculateAmount = () => {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        amountInput.value = (qty * rate).toFixed(2);
+        updateTotal();
+      };
+
+      qtyInput.addEventListener('input', calculateAmount);
+      rateInput.addEventListener('input', calculateAmount);
+
+      // Remove item
+      removeBtn.addEventListener('click', () => {
+        const container = document.getElementById('items-container');
+        if (container.querySelectorAll('.item-row').length > 1) {
+          row.remove();
+          updateTotal();
+        } else {
+          Modal.alert('Error', 'At least one item is required', 'warning');
+        }
+      });
+    };
+
+    // Update total
+    const updateTotal = () => {
+      let total = 0;
+      document.querySelectorAll('#items-container .item-row [data-field="amount"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+      });
+      document.getElementById('purchase-total').value = total.toFixed(2);
+    };
+
+    // Add item button
+    document.getElementById('add-item-btn').addEventListener('click', () => {
+      const container = document.getElementById('items-container');
+      const itemCount = container.querySelectorAll('.item-row').length;
+      const newRow = document.createElement('div');
+      newRow.className = 'item-row';
+      newRow.dataset.itemIndex = itemCount;
+      newRow.innerHTML = `
+        <input type="text" class="form-input" placeholder="Item name" data-field="name" required />
+        <input type="number" class="form-input" placeholder="Qty" data-field="quantity" min="0.01" step="0.01" required />
+        <input type="number" class="form-input" placeholder="Rate" data-field="rate" min="0.01" step="0.01" required />
+        <input type="number" class="form-input" placeholder="Amount" data-field="amount" readonly />
+        <button type="button" class="btn btn-sm btn-ghost remove-item-btn">✕</button>
+      `;
+      container.appendChild(newRow);
+      setupItemRow(newRow);
+    });
+
+    // Setup initial row
+    setupItemRow(document.querySelector('.item-row'));
+
+    modal.addFooter([
+      { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+      {
+        text: 'Save Purchase',
+        className: 'btn btn-primary',
+        onClick: async () => {
+          const formData = Forms.getManualPurchaseFormData();
+
+          // Validate
+          if (!formData.items || formData.items.length === 0) {
+            Modal.alert('Error', 'Please add at least one item', 'warning');
+            return;
+          }
+
+          if (formData.total <= 0) {
+            Modal.alert('Error', 'Total amount must be greater than 0', 'warning');
+            return;
+          }
+
+          // Create purchase
+          const purchaseResult = await this.purchaseService.createPurchase({
+            vendorId,
+            vendorName: vendor.name,
+            date: formData.date,
+            items: formData.items,
+            total: formData.total,
+            notes: formData.notes
+          });
+
+          if (purchaseResult.success) {
+            modal.close();
+            Modal.alert('Success', purchaseResult.message, 'success');
+            this.render(document.getElementById('main-content'));
+          } else {
+            Modal.alert('Error', purchaseResult.message || 'Failed to create purchase', 'danger');
+          }
+        }
+      }
+    ]);
+  }
+
   async processPurchaseOCR(vendorId, imageData) {
     const loadingModal = new Modal({ title: 'Processing...' });
     loadingModal.open();
@@ -227,7 +340,7 @@ class VendorsPage {
       imageData,
       result.data,
       async (confirmedData) => {
-        const vendor = this.partyService.getPartyById(vendorId);
+        const vendor = await this.partyService.getPartyById(vendorId);
         const purchaseResult = await this.purchaseService.createPurchase({
           ...result.data,
           ...confirmedData,
@@ -244,8 +357,8 @@ class VendorsPage {
     );
   }
 
-  showPaymentModal(vendorId) {
-    const vendor = this.partyService.getPartyById(vendorId);
+  async showPaymentModal(vendorId) {
+    const vendor = await this.partyService.getPartyById(vendorId);
     const modal = new Modal({
       title: 'Record Payment',
       content: Forms.createVendorPaymentForm(vendor)
@@ -270,9 +383,9 @@ class VendorsPage {
     ]);
   }
 
-  showVendorLedger(vendorId) {
-    const stats = this.partyService.getPartyStats(vendorId);
-    const transactions = this.partyService.getPartyTransactions(vendorId);
+  async showVendorLedger(vendorId) {
+    const stats = await this.partyService.getPartyStats(vendorId);
+    const transactions = await this.partyService.getPartyTransactions(vendorId);
 
     const modal = new Modal({
       title: `Vendor Ledger - ${stats.party.name}`,
