@@ -121,34 +121,51 @@ class PartyService {
     // Calculate party balance
     calculatePartyBalance(partyId) {
         const party = this.getPartyById(partyId);
-        if (!party) return 0;
+        if (!party) {
+            console.warn('Party not found for balance calculation:', partyId);
+            return 0;
+        }
 
         let balance = party.openingBalance || 0;
         const transactions = this.getPartyTransactions(partyId);
+
+        console.log(`Calculating balance for ${party.name} (${party.type}):`, {
+            openingBalance: balance,
+            transactions: transactions.length
+        });
 
         transactions.forEach(txn => {
             if (party.type === 'Vendor') {
                 if (txn.type === 'purchase') {
                     balance += txn.amount; // Credit - increases payable
+                    console.log(`  + Purchase: ${txn.amount}, New balance: ${balance}`);
                 } else if (txn.type === 'payment') {
                     balance -= txn.amount; // Debit - decreases payable
+                    console.log(`  - Payment: ${txn.amount}, New balance: ${balance}`);
                 }
             } else if (party.type === 'Customer') {
                 if (txn.type === 'sale') {
                     balance += txn.amount; // Debit - increases receivable
+                    console.log(`  + Sale: ${txn.amount}, New balance: ${balance}`);
                 } else if (txn.type === 'payment') {
                     balance -= txn.amount; // Credit - decreases receivable
+                    console.log(`  - Payment: ${txn.amount}, New balance: ${balance}`);
                 }
             }
         });
 
-        return this.calculator.roundToTwo(balance);
+        const finalBalance = this.calculator.roundToTwo(balance);
+        console.log(`Final balance for ${party.name}: ${finalBalance}`);
+        return finalBalance;
     }
 
     // Update party balance
     updatePartyBalance(partyId) {
+        console.log('Updating party balance for:', partyId);
         const balance = this.calculatePartyBalance(partyId);
-        return this.storage.updateItem('parties', partyId, { currentBalance: balance });
+        const result = this.storage.updateItem('parties', partyId, { currentBalance: balance });
+        console.log('Balance update result:', result);
+        return result;
     }
 
     // Search parties

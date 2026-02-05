@@ -212,34 +212,53 @@ class VendorsPage {
     loadingModal.open();
     loadingModal.showLoading('Processing image with OCR...');
 
-    const result = await this.purchaseService.processPurchaseFromOCR(imageData, vendorId);
-    loadingModal.close();
+    try {
+      const result = await this.purchaseService.processPurchaseFromOCR(imageData, vendorId);
+      loadingModal.close();
 
-    if (!result.success) {
-      Modal.alert('Error', result.error, 'danger');
-      return;
-    }
-
-    // Show OCR preview
-    OCRPreview.showInModal(
-      imageData,
-      result.data,
-      async (confirmedData) => {
-        const vendor = this.partyService.getPartyById(vendorId);
-        const purchaseResult = await this.purchaseService.createPurchase({
-          ...result.data,
-          ...confirmedData,
-          vendorId,
-          vendorName: vendor.name,
-          imageData
-        });
-
-        if (purchaseResult.success) {
-          Modal.alert('Success', purchaseResult.message, 'success');
-          this.render(document.getElementById('main-content'));
-        }
+      if (!result.success) {
+        Modal.alert('Error', result.error || 'OCR processing failed', 'danger');
+        return;
       }
-    );
+
+      console.log('OCR processing result:', result);
+
+      // Show OCR preview
+      OCRPreview.showInModal(
+        imageData,
+        result.data,
+        async (confirmedData) => {
+          console.log('User confirmed data:', confirmedData);
+          
+          const vendor = this.partyService.getPartyById(vendorId);
+          if (!vendor) {
+            Modal.alert('Error', 'Vendor not found', 'danger');
+            return;
+          }
+
+          const purchaseResult = await this.purchaseService.createPurchase({
+            ...confirmedData,
+            vendorId,
+            vendorName: vendor.name,
+            imageData
+          });
+
+          console.log('Purchase result:', purchaseResult);
+
+          if (purchaseResult.success) {
+            Modal.alert('Success', purchaseResult.message, 'success');
+            // Refresh vendor page
+            this.render(document.getElementById('main-content'));
+          } else {
+            Modal.alert('Error', purchaseResult.message || 'Failed to create purchase', 'danger');
+          }
+        }
+      );
+    } catch (error) {
+      loadingModal.close();
+      console.error('Error in processPurchaseOCR:', error);
+      Modal.alert('Error', 'Failed to process image: ' + error.message, 'danger');
+    }
   }
 
   showPaymentModal(vendorId) {

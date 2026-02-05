@@ -12,59 +12,93 @@ class PurchaseService {
 
     // Create new purchase
     async createPurchase(purchaseData) {
-        // Validate transaction
-        const validated = this.calculator.validateTransaction({
-            items: purchaseData.items,
-            total: purchaseData.total
-        });
-
-        // Create purchase record
-        const purchase = {
-            vendorId: purchaseData.vendorId,
-            vendorName: purchaseData.vendorName,
-            date: purchaseData.date || new Date().toISOString(),
-            items: validated.items,
-            subtotal: purchaseData.subtotal || 0,
-            tax: purchaseData.tax || 0,
-            taxPercent: purchaseData.taxPercent || 0,
-            total: validated.total,
-            originalTotal: validated.originalTotal,
-            totalWasCorrected: validated.totalWasCorrected,
-            corrections: validated.corrections,
-            hasImage: !!purchaseData.imageData,
-            imageUrl: null,
-            ocrData: purchaseData.ocrData || null,
-            notes: purchaseData.notes || '',
-            createdAt: new Date().toISOString()
-        };
-
-        // Save purchase
-        const savedPurchase = this.storage.addItem('purchases', purchase);
-
-        // Save image if provided
-        if (purchaseData.imageData) {
-            const imageInfo = await this.storage.saveImage(
-                purchaseData.imageData,
-                'purchases',
-                savedPurchase.id
-            );
-            if (imageInfo) {
-                savedPurchase.imageUrl = imageInfo.url;
-                this.storage.updateItem('purchases', savedPurchase.id, { imageUrl: imageInfo.url });
+        console.log('Creating purchase with data:', purchaseData);
+        
+        try {
+            // Validate vendor exists
+            const vendor = this.partyService.getPartyById(purchaseData.vendorId);
+            if (!vendor) {
+                throw new Error('Vendor not found');
             }
+            console.log('Vendor found:', vendor);
+
+            // Validate transaction
+            const validated = this.calculator.validateTransaction({
+                items: purchaseData.items,
+                total: purchaseData.total
+            });
+            console.log('Transaction validated:', validated);
+
+            // Create purchase record
+            const purchase = {
+                vendorId: purchaseData.vendorId,
+                vendorName: purchaseData.vendorName || vendor.name,
+                date: purchaseData.date || new Date().toISOString(),
+                items: validated.items,
+                subtotal: purchaseData.subtotal || 0,
+                tax: purchaseData.tax || 0,
+                taxPercent: purchaseData.taxPercent || 0,
+                total: validated.total,
+                originalTotal: validated.originalTotal,
+                totalWasCorrected: validated.totalWasCorrected,
+                corrections: validated.corrections,
+                hasImage: !!purchaseData.imageData,
+                imageUrl: null,
+                ocrData: purchaseData.ocrData || null,
+                notes: purchaseData.notes || '',
+                createdAt: new Date().toISOString()
+            };
+
+            // Save purchase
+            const savedPurchase = this.storage.addItem('purchases', purchase);
+            console.log('Purchase saved:', savedPurchase);
+
+            // Save image if provided
+            let imageInfo = null;
+            if (purchaseData.imageData) {
+                imageInfo = await this.storage.saveImage(
+                    purchaseData.imageData,
+                    'purchases',
+                    savedPurchase.id
+                );
+                if (imageInfo) {
+                    savedPurchase.imageUrl = imageInfo.url;
+                    this.storage.updateItem('purchases', savedPurchase.id, { imageUrl: imageInfo.url });
+                    console.log('Image saved:', imageInfo);
+                }
+            }
+
+            // Update stock
+            this.stockService.updateStockOnPurchase(validated.items, savedPurchase.id);
+            console.log('Stock updated');
+
+            // Update vendor balance
+            const balanceUpdated = this.partyService.updatePartyBalance(purchaseData.vendorId);
+            console.log('Vendor balance updated:', balanceUpdated);
+            
+            // Get updated vendor to verify
+            const updatedVendor = this.partyService.getPartyById(purchaseData.vendorId);
+            console.log('Updated vendor balance:', updatedVendor.currentBalance);
+
+            // Dispatch event for dashboard refresh
+            window.dispatchEvent(new CustomEvent('purchase-created', { 
+                detail: { purchase: savedPurchase, vendor: updatedVendor } 
+            }));
+
+            return {
+                success: true,
+                purchase: savedPurchase,
+                vendor: updatedVendor,
+                message: `Purchase of ${this.calculator.formatCurrency(validated.total)} created successfully${validated.corrections.totalCorrections > 0 ? ' with corrections' : ''}. ${imageInfo ? 'Image saved.' : ''}`
+            };
+        } catch (error) {
+            console.error('Error creating purchase:', error);
+            return {
+                success: false,
+                error: error.message,
+                message: 'Failed to create purchase: ' + error.message
+            };
         }
-
-        // Update stock
-        this.stockService.updateStockOnPurchase(validated.items, savedPurchase.id);
-
-        // Update vendor balance
-        this.partyService.updatePartyBalance(purchaseData.vendorId);
-
-        return {
-            success: true,
-            purchase: savedPurchase,
-            message: `Purchase created successfully${validated.corrections.totalCorrections > 0 ? ' with corrections' : ''}. Image ${imageInfo ? 'saved' : 'storage failed'}.`
-        };
     }
 
     // Get all purchases

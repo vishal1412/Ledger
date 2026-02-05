@@ -409,26 +409,67 @@ class OCREngine {
 
     // Process and validate in one step
     async processAndValidate(imageData) {
-        const ocrResult = await this.processImage(imageData);
-        if (!ocrResult.success) {
-            return { success: false, error: ocrResult.error };
-        }
-
-        const parsed = this.parseInvoice(ocrResult);
-        if (!parsed) {
-            return { success: false, error: 'Failed to parse invoice' };
-        }
-
-        // Validate using calculator
-        const validated = window.calculator.validateTransaction(parsed);
-
-        return {
-            success: true,
-            data: {
-                ...parsed,
-                ...validated
+        try {
+            console.log('Starting OCR processing...');
+            
+            const ocrResult = await this.processImage(imageData);
+            console.log('OCR Result:', ocrResult);
+            
+            if (!ocrResult.success) {
+                return { success: false, error: ocrResult.error };
             }
-        };
+
+            const parsed = this.parseInvoice(ocrResult);
+            console.log('Parsed invoice data:', parsed);
+            
+            if (!parsed) {
+                return { success: false, error: 'Failed to parse invoice' };
+            }
+
+            // Ensure we have at least some data
+            if (parsed.items.length === 0 && parsed.total === 0) {
+                console.warn('No items or total found in OCR');
+                // Create a default item so user can edit
+                parsed.items = [{
+                    name: 'Item 1',
+                    quantity: 1,
+                    rate: 0,
+                    lineAmount: 0
+                }];
+            }
+
+            // Validate using calculator
+            const validated = window.calculator.validateTransaction({
+                items: parsed.items,
+                total: parsed.total
+            });
+            console.log('Validated transaction:', validated);
+
+            return {
+                success: true,
+                data: {
+                    partyName: parsed.partyName || '',
+                    date: parsed.date || new Date().toISOString().split('T')[0],
+                    items: validated.items,
+                    subtotal: parsed.subtotal || validated.total - (parsed.tax || 0),
+                    tax: parsed.tax || 0,
+                    taxPercent: parsed.taxPercent || 0,
+                    total: validated.total,
+                    originalTotal: validated.originalTotal,
+                    totalWasCorrected: validated.totalWasCorrected,
+                    corrections: validated.corrections,
+                    validationSummary: validated.validationSummary,
+                    rawText: parsed.rawText,
+                    confidence: parsed.confidence
+                }
+            };
+        } catch (error) {
+            console.error('OCR processing error:', error);
+            return { 
+                success: false, 
+                error: 'OCR processing failed: ' + error.message 
+            };
+        }
     }
 }
 

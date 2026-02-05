@@ -16,6 +16,16 @@ class DashboardPage {
     render(container) {
         const stats = this.getStats();
 
+        // Listen for purchase events to refresh dashboard
+        const refreshDashboard = () => {
+            console.log('Purchase created, refreshing dashboard');
+            this.render(container);
+        };
+        
+        // Remove old listener to prevent duplicates
+        window.removeEventListener('purchase-created', refreshDashboard);
+        window.addEventListener('purchase-created', refreshDashboard);
+
         container.innerHTML = `
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
