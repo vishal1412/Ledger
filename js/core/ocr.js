@@ -6,7 +6,7 @@ class OCREngine {
     constructor() {
         this.worker = null;
         this.isReady = false;
-        this.initialize();
+        this.initPromise = null;
     }
 
     // Initialize Tesseract worker
@@ -16,31 +16,43 @@ class OCREngine {
             return true;
         }
 
-        try {
-            console.log('Initializing OCR Engine...');
-            
-            // Check if Tesseract is available
-            if (typeof Tesseract === 'undefined') {
-                throw new Error('Tesseract library not loaded');
-            }
-
-            // Create Tesseract worker
-            this.worker = await Tesseract.createWorker('eng', 1, {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        this.updateProgress(Math.round(m.progress * 100));
-                    }
-                }
-            });
-            
-            this.isReady = true;
-            console.log('✓ OCR Engine initialized successfully');
-            return true;
-        } catch (error) {
-            console.error('✗ Error initializing OCR:', error);
-            this.isReady = false;
-            return false;
+        // If initialization is in progress, wait for it
+        if (this.initPromise) {
+            console.log('Waiting for OCR Engine initialization...');
+            return await this.initPromise;
         }
+
+        // Start initialization
+        this.initPromise = (async () => {
+            try {
+                console.log('Initializing OCR Engine...');
+                
+                // Check if Tesseract is available
+                if (typeof Tesseract === 'undefined') {
+                    throw new Error('Tesseract library not loaded');
+                }
+
+                // Create Tesseract worker
+                this.worker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            this.updateProgress(Math.round(m.progress * 100));
+                        }
+                    }
+                });
+                
+                this.isReady = true;
+                console.log('✓ OCR Engine initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('✗ Error initializing OCR:', error);
+                this.isReady = false;
+                this.initPromise = null;
+                return false;
+            }
+        })();
+
+        return await this.initPromise;
     }
 
     // Process image and extract text
@@ -469,5 +481,19 @@ class OCREngine {
     }
 }
 
-// Create global instance
+// Create global instance and initialize
 window.ocrEngine = new OCREngine();
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.ocrEngine.initialize().then(success => {
+            console.log('OCR Engine auto-initialized:', success);
+        });
+    });
+} else {
+    // DOM already loaded, initialize immediately
+    window.ocrEngine.initialize().then(success => {
+        console.log('OCR Engine auto-initialized:', success);
+    });
+}

@@ -172,7 +172,7 @@ class PurchaseService {
     // Process OCR purchase
     async processPurchaseFromOCR(imageData, vendorId) {
         try {
-            // Check if OCR engine is available
+            // Check if OCR engine exists
             if (!window.ocrEngine) {
                 console.error('OCR Engine not initialized');
                 return {
@@ -181,13 +181,18 @@ class PurchaseService {
                 };
             }
 
-            // Wait for OCR engine to be ready
-            if (!window.ocrEngine.isReady) {
-                console.log('Waiting for OCR Engine to initialize...');
-                await window.ocrEngine.initialize();
+            // Ensure OCR engine is initialized (it will wait if initialization is in progress)
+            console.log('Ensuring OCR Engine is ready...');
+            const initialized = await window.ocrEngine.initialize();
+            if (!initialized) {
+                return {
+                    success: false,
+                    error: 'Failed to initialize OCR Engine. Please check your internet connection and try again.'
+                };
             }
 
             // Process image with OCR
+            console.log('Processing image with OCR...');
             const result = await window.ocrEngine.processAndValidate(imageData);
 
             if (!result.success) {
