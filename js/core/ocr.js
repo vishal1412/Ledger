@@ -1,6 +1,7 @@
 // ===================================
 // OCR PROCESSING ENGINE
 // ===================================
+console.log('🔍 OCR.JS FILE LOADING...');
 
 class OCREngine {
     constructor() {
