@@ -17,18 +17,10 @@ class App {
         console.log('Checking dependencies...');
         console.log('Storage:', typeof window.storage);
         console.log('Calculator:', typeof window.calculator);
-        console.log('OCR Engine:', typeof window.ocrEngine);
         console.log('Party Service:', typeof window.partyService);
         console.log('Stock Service:', typeof window.stockService);
         console.log('DashboardPage:', typeof DashboardPage);
         console.log('PartiesPage:', typeof PartiesPage);
-
-        // Check if OCR Engine is available
-        if (!window.ocrEngine) {
-            console.warn('⚠️ OCR Engine not initialized, OCR features may not work');
-        } else {
-            console.log('✓ OCR Engine available');
-        }
 
         // Initialize pages now that all services are loaded
         console.log('Initializing pages...');
@@ -62,18 +54,13 @@ class App {
             this.loadPage(e.detail.page);
         });
 
-        // Listen for hash changes (browser back/forward)
-        window.addEventListener('hashchange', () => {
-            this.handleHashChange();
-        });
-
-        // Load initial page based on URL hash or default to dashboard
-        console.log('Loading initial page...');
+        // Load initial page
+        console.log('Loading dashboard...');
         try {
-            this.handleHashChange();
-            console.log('✓ Initial page loaded');
+            this.loadPage('dashboard');
+            console.log('✓ Dashboard loaded');
         } catch (error) {
-            console.error('✗ Error loading initial page:', error);
+            console.error('✗ Error loading dashboard:', error);
             return;
         }
 
@@ -90,35 +77,8 @@ class App {
         console.log('✅ Application Initialized Successfully');
     }
 
-    // Handle hash changes
-    handleHashChange() {
-        let hash = window.location.hash.substring(1).toLowerCase(); // Remove # and convert to lowercase
-        
-        // Default to dashboard if no hash or invalid hash
-        if (!hash || !this.pages[hash]) {
-            hash = 'dashboard';
-        }
-        
-        console.log(`Hash changed to: ${hash}`);
-        
-        // Update navigation active state
-        if (this.navigation) {
-            this.navigation.currentPage = hash;
-            document.querySelectorAll('.nav-link').forEach(link => {
-                if (link.dataset.page === hash) {
-                    link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
-                }
-            });
-        }
-        
-        // Load the page directly
-        this.loadPage(hash);
-    }
-
     // Load page
-    async loadPage(pageName) {
+    loadPage(pageName) {
         console.log(`Loading page: ${pageName}`);
 
         const page = this.pages[pageName];
@@ -135,8 +95,11 @@ class App {
 
         try {
             // Render page
-            await page.render(container);
+            page.render(container);
             this.currentPage = pageName;
+
+            // Update URL hash
+            window.location.hash = pageName;
 
             console.log(`✓ Page ${pageName} rendered successfully`);
         } catch (error) {

@@ -11,12 +11,14 @@ class VendorsPage {
     this.calculator = window.calculator;
   }
 
-  render(container) {
-    const vendors = this.partyService.getVendors();
-    const purchaseStats = this.purchaseService.getPurchaseStats();
+  async render(container) {
+    const vendors = await this.partyService.getVendors();
+    const purchaseStats = await this.purchaseService.getPurchaseStats();
 
-    const totalPayable = vendors.reduce((sum, v) =>
-      sum + this.partyService.calculatePartyBalance(v.id), 0);
+    let totalPayable = 0;
+    for (const v of vendors) {
+      totalPayable += await this.partyService.calculatePartyBalance(v.id);
+    }
 
     container.innerHTML = `
       <div class="page-header">

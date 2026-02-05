@@ -165,31 +165,7 @@ class SalesService {
     // Process OCR sale
     async processSaleFromOCR(imageData, customerId) {
         try {
-            // Debug: Check OCR Engine availability
-            console.log('Sales: Checking OCR Engine availability...');
-            console.log('Sales: window.ocrEngine exists:', !!window.ocrEngine);
-            
-            // Check if OCR engine exists
-            if (!window.ocrEngine) {
-                console.error('✗ Sales: OCR Engine not initialized');
-                return {
-                    success: false,
-                    error: 'OCR Engine is not available. Please refresh the page and try again.'
-                };
-            }
-
-            // Ensure OCR engine is initialized
-            console.log('✓ Sales: OCR Engine found, ensuring it is ready...');
-            const initialized = await window.ocrEngine.initialize();
-            if (!initialized) {
-                return {
-                    success: false,
-                    error: 'Failed to initialize OCR Engine. Please check your internet connection and try again.'
-                };
-            }
-
             // Process image with OCR
-            console.log('✓ Sales: OCR Engine ready, processing image...');
             const result = await window.ocrEngine.processAndValidate(imageData);
 
             if (!result.success) {

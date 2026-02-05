@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const mongoHelper = require('./api/mongodb-helper');
 
 const app = express();
 const PORT = 3000;
@@ -13,11 +14,9 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static('.')); // Serve the frontend from current directory
 
-// Ensure data and images directories exist
-const DATA_DIR = path.join(__dirname, 'data');
+// Ensure images directory exists (data now in MongoDB)
 const IMAGES_DIR = path.join(__dirname, 'images');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR);
 
 // Configure Image Storage
@@ -42,35 +41,29 @@ const upload = multer({ storage: storage });
 
 // --- API Endpoints ---
 
-// Get Data (Generic)
-app.get('/api/storage/:collection', (req, res) => {
-    const collection = req.params.collection;
-    const filePath = path.join(DATA_DIR, `${collection}.json`);
-
-    if (fs.existsSync(filePath)) {
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) return res.status(500).send('Error reading data');
-            try {
-                res.json(JSON.parse(data));
-            } catch (e) {
-                res.json([]); // Return empty array if file is corrupted/empty
-            }
-        });
-    } else {
-        res.json([]); // Return empty array if file doesn't exist
+// Get Data from MongoDB (Generic)
+app.get('/api/storage/:collection', async (req, res) => {
+    try {
+        const collection = req.params.collection;
+        const data = await mongoHelper.getAllData(collection);
+        res.json(data);
+    } catch (err) {
+        console.error('Error reading data from MongoDB:', err);
+        res.status(500).json({ error: 'Error reading data', details: err.message });
     }
 });
 
-// Save Data (Generic)
-app.post('/api/storage/:collection', (req, res) => {
-    const collection = req.params.collection;
-    const data = req.body;
-    const filePath = path.join(DATA_DIR, `${collection}.json`);
-
-    fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
-        if (err) return res.status(500).send('Error saving data');
+// Save Data to MongoDB (Generic - Replace all data in collection)
+app.post('/api/storage/:collection', async (req, res) => {
+    try {
+        const collection = req.params.collection;
+        const data = req.body;
+        await mongoHelper.replaceAllData(collection, data);
         res.json({ success: true, message: 'Data saved successfully' });
-    });
+    } catch (err) {
+        console.error('Error saving data to MongoDB:', err);
+        res.status(500).json({ error: 'Error saving data', details: err.message });
+    }
 });
 
 // Upload Image

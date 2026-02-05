@@ -15,16 +15,8 @@ class DashboardPage {
     // Render dashboard
     async render(container) {
         const stats = await this.getStats();
-
-        // Listen for purchase events to refresh dashboard
-        const refreshDashboard = () => {
-            console.log('Purchase created, refreshing dashboard');
-            this.render(container);
-        };
-        
-        // Remove old listener to prevent duplicates
-        window.removeEventListener('purchase-created', refreshDashboard);
-        window.addEventListener('purchase-created', refreshDashboard);
+        const recentActivity = await this.renderRecentActivity();
+        const lowStockAlerts = stats.lowStockItems > 0 ? await this.renderLowStockAlerts() : '';
 
         container.innerHTML = `
       <div class="page-header">
@@ -80,7 +72,7 @@ class DashboardPage {
             <h3 class="card-title">Recent Activity</h3>
           </div>
           <div class="card-body">
-            ${this.renderRecentActivity()}
+            ${recentActivity}
           </div>
         </div>
 
@@ -90,7 +82,7 @@ class DashboardPage {
               <h3 class="card-title">⚠️ Low Stock Alerts</h3>
             </div>
             <div class="card-body">
-              ${this.renderLowStockAlerts()}
+              ${lowStockAlerts}
             </div>
           </div>
         ` : ''}
@@ -106,16 +98,15 @@ class DashboardPage {
         const purchaseStats = await this.purchaseService.getPurchaseStats();
         const salesStats = await this.salesService.getSaleStats();
 
-        let totalPayable = 0;
-        for (const v of vendors) {
-            totalPayable += await this.partyService.calculatePartyBalance(v.id);
-        }
+        const totalPayable = await vendors.reduce(async (sumPromise, v) => {
+            const sum = await sumPromise;
+            return sum + await this.partyService.calculatePartyBalance(v.id);
+        }, Promise.resolve(0));
 
-        let totalReceivable = 0;
-        for (const c of customers) {
-            totalReceivable += await this.partyService.calculatePartyBalance(c.id);
-        }
-        }, 0);
+        const totalReceivable = await customers.reduce(async (sumPromise, c) => {
+            const sum = await sumPromise;
+            return sum + await this.partyService.calculatePartyBalance(c.id);
+        }, Promise.resolve(0));
 
         return {
             totalVendors: vendors.length,

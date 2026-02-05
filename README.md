@@ -1,5 +1,7 @@
 # Business Ledger & Stock Management Application
 
+> ⚡ **IMPORTANT**: This application has been migrated to **MongoDB-only storage**. All data is now persisted in MongoDB exclusively. See [MONGODB_MIGRATION.md](./MONGODB_MIGRATION.md) for migration details and important breaking changes.
+
 A comprehensive web-based business ledger and stock management system with OCR-based document processing, automated calculations, and detailed financial tracking.
 
 ## 🌟 Key Features
@@ -12,28 +14,23 @@ A comprehensive web-based business ledger and stock management system with OCR-b
 - **Stock Management**: Auto-updated inventory from purchases/sales.
 - **Dashboards**: Real-time business overview and analytics.
 
-### 💾 Data Persistence Options
+### 💾 Data Persistence
 
-This application offers **three storage modes**:
+This application now uses **MongoDB exclusively** for all data storage:
 
-1. **☁️ Cloud Storage (MongoDB + Vercel)** - NEW! ⭐
-   - Store data in MongoDB Atlas (free cloud database)
-   - Deploy API to Vercel (free serverless hosting)
-   - Access from anywhere, any device
-   - Automatic backups and scalability
-   - **Recommended for production use**
+- **☁️ MongoDB Cloud Storage** - Recommended
+  - Store data in MongoDB Atlas (free cloud database)
+  - Deploy API to Vercel (free serverless hosting)
+  - Access from anywhere, any device
+  - Automatic backups and scalability
+  - **Perfect for production use**
 
-2. **🖥️ Local Server Storage**
-   - Node.js backend saves to local files
-   - Data stored in `data/` folder
-   - Images stored in `images/` folder
-   - Good for single-device use
+- **🖥️ MongoDB Local Storage**
+  - MongoDB running locally on your machine
+  - Express backend API
+  - Good for development and single-user setup
 
-3. **🌐 Browser Storage (LocalStorage)**
-   - No server required
-   - Data stored in browser only
-   - Limited by browser storage quotas
-   - Good for demos/testing
+**Note**: All operations are now async (Promise-based) and require a server connection. See [MONGODB_MIGRATION.md](./MONGODB_MIGRATION.md) for details.
 
 ## 🚀 Quick Start
 

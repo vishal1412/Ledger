@@ -8,9 +8,9 @@ class StockPage {
         this.calculator = window.calculator;
     }
 
-    async render(container) {
-        const stock = await this.stockService.getAllStock();
-        const stats = await this.stockService.getStockStats();
+    render(container) {
+        const stock = this.stockService.getAllStock();
+        const stats = this.stockService.getStockStats();
 
         container.innerHTML = `
       <div class="page-header">

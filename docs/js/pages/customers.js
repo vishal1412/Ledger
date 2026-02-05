@@ -10,14 +10,12 @@ class CustomersPage {
         this.calculator = window.calculator;
     }
 
-    async render(container) {
-        const customers = await this.partyService.getCustomers();
-        const salesStats = await this.salesService.getSaleStats();
+    render(container) {
+        const customers = this.partyService.getCustomers();
+        const salesStats = this.salesService.getSaleStats();
 
-        let totalReceivable = 0;
-        for (const c of customers) {
-            totalReceivable += await this.partyService.calculatePartyBalance(c.id);
-        }
+        const totalReceivable = customers.reduce((sum, c) =>
+            sum + this.partyService.calculatePartyBalance(c.id), 0);
 
         container.innerHTML = `
       <div class="page-header">
