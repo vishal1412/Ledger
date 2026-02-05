@@ -126,6 +126,10 @@ body {
   color: var(--gray-900);
   background: var(--gray-50);
   overflow-x: hidden;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: contain;
+  /* Better text rendering */
+  text-rendering: optimizeLegibility;
 }
 
 /* ===================================
@@ -260,10 +264,65 @@ body {
   .grid-cols-2, .grid-cols-3, .grid-cols-4 {
     grid-template-columns: repeat(1, 1fr);
   }
+
+  /* Mobile-specific utilities */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Desktop-specific utilities */
+  .hide-desktop {
+    display: none !important;
+  }
+
+  .show-desktop {
+    display: block !important;
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .grid-cols-3, .grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap targets for touch devices */
+  button, a, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on buttons */
+  button, .btn {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Smooth scrolling for touch */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }

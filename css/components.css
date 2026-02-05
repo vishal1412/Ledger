@@ -700,4 +700,141 @@
     .line-item-field-sm {
         min-width: 100%;
     }
+
+    /* Mobile-optimized tables */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Stack stat cards vertically */
+    .stat-card {
+        padding: var(--spacing-md);
+    }
+
+    /* Improve modal on mobile */
+    .modal {
+        margin: 0;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+
+    .modal-header {
+        padding: var(--spacing-md);
+    }
+
+    .modal-body {
+        padding: var(--spacing-md);
+    }
+
+    .modal-footer {
+        padding: var(--spacing-md);
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+        margin: var(--spacing-xs) 0;
+    }
+
+    /* Improve forms on mobile */
+    .form-input,
+    .form-select,
+    .form-textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: var(--spacing-md);
+    }
+
+    /* Better touch targets */
+    .btn {
+        min-height: 44px;
+        padding: var(--spacing-md);
+        font-size: var(--font-size-base);
+    }
+
+    .btn-sm {
+        min-height: 36px;
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    /* Line items mobile layout */
+    .line-items {
+        padding: var(--spacing-sm);
+    }
+
+    .line-item {
+        padding: var(--spacing-sm);
+    }
+
+    .line-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+        padding-top: var(--spacing-sm);
+    }
+
+    /* Card adjustments */
+    .card {
+        border-radius: var(--radius-md);
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+
+    /* Alert adjustments */
+    .alert {
+        padding: var(--spacing-md);
+        font-size: var(--font-size-sm);
+    }
+
+    /* Camera/OCR buttons */
+    .camera-controls {
+        flex-direction: column;
+    }
+
+    .camera-controls .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small screens */
+    .modal-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .card-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .stat-value {
+        font-size: var(--font-size-2xl);
+    }
+
+    .stat-label {
+        font-size: var(--font-size-sm);
+    }
+
+    /* Compact line items */
+    .line-item-row {
+        gap: var(--spacing-xs);
+    }
+
+    .line-item-field label {
+        font-size: var(--font-size-xs);
+    }
+
+    .line-item-field input {
+        font-size: var(--font-size-sm);
+        padding: var(--spacing-sm);
+    }
+
+    /* Table cells */
+    .table td,
+    .table th {
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
 }

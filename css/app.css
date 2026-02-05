@@ -351,34 +351,203 @@
 }
 
 /* Responsive Design */
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    z-index: calc(var(--z-fixed) + 10);
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xl);
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-fixed) - 1);
+}
+
 @media (max-width: 768px) {
+    /* Show mobile menu toggle */
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    /* Sidebar mobile behavior */
     .sidebar {
         transform: translateX(-100%);
+        width: 280px;
     }
 
     .sidebar.open {
         transform: translateX(0);
     }
 
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    /* Main content adjustments */
     .main-content {
         margin-left: 0;
+        padding: var(--spacing-lg);
+        padding-top: calc(var(--spacing-2xl) + 40px); /* Account for mobile menu */
     }
 
+    /* Page header */
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .page-title {
+        font-size: var(--font-size-2xl);
+    }
+
+    .page-subtitle {
+        font-size: var(--font-size-base);
+    }
+
+    .page-actions {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .page-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    /* OCR preview */
     .ocr-preview {
         grid-template-columns: 1fr;
+        gap: var(--spacing-md);
     }
 
+    .ocr-data-panel {
+        max-height: none;
+    }
+
+    /* Line items */
     .line-item {
         grid-template-columns: 1fr;
     }
 
+    /* Ledger entries */
     .ledger-entry {
         grid-template-columns: 1fr;
         gap: var(--spacing-sm);
+        padding: var(--spacing-md);
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
+    /* Tables - make scrollable */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-md);
+    }
+
+    .table {
+        min-width: 600px; /* Ensure table doesn't get too cramped */
+    }
+
+    .table td, .table th {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+    }
+
+    /* Cards */
+    .card {
+        padding: var(--spacing-md);
+    }
+
+    /* Forms */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Modal adjustments */
+    .modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        margin: var(--spacing-sm);
+        max-height: 95vh;
+    }
+
+    .modal-body {
+        padding: var(--spacing-md);
+        max-height: calc(95vh - 150px);
+    }
+
+    /* Buttons */
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small devices */
+    .main-content {
+        padding: var(--spacing-md);
+        padding-top: calc(var(--spacing-xl) + 40px);
+    }
+
+    .page-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .card {
+        padding: var(--spacing-sm);
+    }
+
+    .card-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .stat-card {
+        padding: var(--spacing-md);
+    }
+
+    .stat-value {
+        font-size: var(--font-size-2xl);
+    }
+
+    /* Make buttons touch-friendly */
+    .btn {
+        min-height: 44px;
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .btn-sm {
+        min-height: 36px;
     }
 }
 
