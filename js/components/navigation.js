@@ -69,6 +69,9 @@ class Navigation {
       }
     });
 
+    // Update URL hash
+    window.location.hash = page;
+
     // Dispatch navigation event
     const event = new CustomEvent('navigate', { detail: { page } });
     window.dispatchEvent(event);

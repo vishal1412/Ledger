@@ -54,13 +54,18 @@ class App {
             this.loadPage(e.detail.page);
         });
 
-        // Load initial page
-        console.log('Loading dashboard...');
+        // Listen for hash changes (browser back/forward)
+        window.addEventListener('hashchange', () => {
+            this.handleHashChange();
+        });
+
+        // Load initial page based on URL hash or default to dashboard
+        console.log('Loading initial page...');
         try {
-            this.loadPage('dashboard');
-            console.log('✓ Dashboard loaded');
+            this.handleHashChange();
+            console.log('✓ Initial page loaded');
         } catch (error) {
-            console.error('✗ Error loading dashboard:', error);
+            console.error('✗ Error loading initial page:', error);
             return;
         }
 
@@ -75,6 +80,26 @@ class App {
         });
 
         console.log('✅ Application Initialized Successfully');
+    }
+
+    // Handle hash changes
+    handleHashChange() {
+        let hash = window.location.hash.substring(1).toLowerCase(); // Remove # and convert to lowercase
+        
+        // Default to dashboard if no hash or invalid hash
+        if (!hash || !this.pages[hash]) {
+            hash = 'dashboard';
+        }
+        
+        console.log(`Hash changed to: ${hash}`);
+        
+        // Update navigation and load page
+        if (this.navigation) {
+            this.navigation.currentPage = hash;
+            this.navigation.navigate(hash);
+        } else {
+            this.loadPage(hash);
+        }
     }
 
     // Load page
