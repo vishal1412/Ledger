@@ -182,8 +182,7 @@ class VendorsPage {
 
     document.getElementById('manual-btn').addEventListener('click', () => {
       modal.close();
-      // Would open manual entry form (simplified for brevity)
-      Modal.alert('Manual Entry', 'Manual entry form would open here. Use Camera/Upload for OCR.');
+      this.showManualPurchaseForm(vendorId);
     });
   }
 
@@ -205,6 +204,302 @@ class VendorsPage {
     } catch (error) {
       Modal.alert('Error', 'File upload failed', 'danger');
     }
+  }
+
+  showManualPurchaseForm(vendorId) {
+    const vendor = this.partyService.getPartyById(vendorId);
+    const today = new Date().toISOString().split('T')[0];
+
+    const modal = new Modal({
+      title: `Manual Purchase Entry - ${vendor.name}`,
+      size: 'large',
+      content: `
+        <div class="form-group">
+          <label class="form-label required">Date</label>
+          <input type="date" class="form-input" id="manual-date" value="${today}" />
+        </div>
+
+        <div class="line-items">
+          <h4 class="line-items-header">Purchase Items</h4>
+          <div id="manual-items-container">
+            <div class="line-item" data-index="0">
+              <div class="line-item-row">
+                <div class="line-item-field">
+                  <label class="text-xs text-gray">Item Name *</label>
+                  <input type="text" class="form-input" placeholder="Enter item name" 
+                         data-field="name" data-index="0" />
+                </div>
+                <div class="line-item-field line-item-field-sm">
+                  <label class="text-xs text-gray">Qty *</label>
+                  <input type="number" step="0.01" class="form-input" value="1" 
+                         data-field="quantity" data-index="0" />
+                </div>
+                <div class="line-item-field line-item-field-sm">
+                  <label class="text-xs text-gray">Rate *</label>
+                  <input type="number" step="0.01" class="form-input" value="0" 
+                         data-field="rate" data-index="0" />
+                </div>
+                <div class="line-item-field line-item-field-sm">
+                  <label class="text-xs text-gray">Amount</label>
+                  <input type="number" step="0.01" class="form-input" value="0" 
+                         data-field="amount" data-index="0" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="manual-add-item-btn">+ Add Item</button>
+        </div>
+
+        <div class="totals-section">
+          <div class="form-group">
+            <label class="form-label">Subtotal</label>
+            <input type="number" step="0.01" class="form-input" 
+                   id="manual-subtotal" value="0" readonly />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tax / GST (%)</label>
+            <input type="number" step="0.01" class="form-input" 
+                   id="manual-tax-percent" value="0" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tax Amount</label>
+            <input type="number" step="0.01" class="form-input" 
+                   id="manual-tax" value="0" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-bold text-lg">Total Amount *</label>
+            <input type="number" step="0.01" class="form-input" 
+                   id="manual-total" value="0" readonly />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes (Optional)</label>
+          <textarea class="form-input" id="manual-notes" rows="2" 
+                    placeholder="Add any additional notes..."></textarea>
+        </div>
+      `
+    });
+
+    modal.open();
+
+    // Setup event listeners
+    this.setupManualFormListeners();
+
+    // Add footer buttons
+    modal.addFooter([
+      { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+      {
+        text: 'Save Purchase',
+        className: 'btn btn-success',
+        onClick: async () => {
+          const purchaseData = this.getManualFormData(vendorId, vendor.name);
+          
+          if (!purchaseData) {
+            Modal.alert('Error', 'Please fill all required fields', 'danger');
+            return;
+          }
+
+          const result = await this.purchaseService.createPurchase(purchaseData);
+          
+          if (result.success) {
+            modal.close();
+            Modal.alert('Success', result.message, 'success');
+            this.render(document.getElementById('main-content'));
+          } else {
+            Modal.alert('Error', result.message || 'Failed to create purchase', 'danger');
+          }
+        }
+      }
+    ]);
+  }
+
+  setupManualFormListeners() {
+    // Add item button
+    const addBtn = document.getElementById('manual-add-item-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => this.addManualItem());
+    }
+
+    // Item field listeners
+    document.addEventListener('input', (e) => {
+      if (e.target.dataset.field && e.target.dataset.index !== undefined) {
+        this.updateManualItem(parseInt(e.target.dataset.index), e.target.dataset.field, e.target.value);
+      }
+    });
+
+    // Tax listeners
+    const taxPercentInput = document.getElementById('manual-tax-percent');
+    const taxInput = document.getElementById('manual-tax');
+    
+    if (taxPercentInput) {
+      taxPercentInput.addEventListener('input', () => this.recalculateManualTotals());
+    }
+    if (taxInput) {
+      taxInput.addEventListener('input', () => this.recalculateManualTotals());
+    }
+  }
+
+  addManualItem() {
+    const container = document.getElementById('manual-items-container');
+    const currentItems = container.querySelectorAll('.line-item');
+    const newIndex = currentItems.length;
+
+    const itemHtml = `
+      <div class="line-item" data-index="${newIndex}">
+        <div class="line-item-row">
+          <div class="line-item-field">
+            <label class="text-xs text-gray">Item Name *</label>
+            <input type="text" class="form-input" placeholder="Enter item name" 
+                   data-field="name" data-index="${newIndex}" />
+          </div>
+          <div class="line-item-field line-item-field-sm">
+            <label class="text-xs text-gray">Qty *</label>
+            <input type="number" step="0.01" class="form-input" value="1" 
+                   data-field="quantity" data-index="${newIndex}" />
+          </div>
+          <div class="line-item-field line-item-field-sm">
+            <label class="text-xs text-gray">Rate *</label>
+            <input type="number" step="0.01" class="form-input" value="0" 
+                   data-field="rate" data-index="${newIndex}" />
+          </div>
+          <div class="line-item-field line-item-field-sm">
+            <label class="text-xs text-gray">Amount</label>
+            <input type="number" step="0.01" class="form-input" value="0" 
+                   data-field="amount" data-index="${newIndex}" readonly />
+          </div>
+          <div class="line-item-actions">
+            <button class="btn btn-sm btn-ghost delete-manual-item-btn" data-index="${newIndex}" title="Delete">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', itemHtml);
+
+    // Add delete listener
+    const deleteBtn = container.querySelector(`[data-index="${newIndex}"].delete-manual-item-btn`);
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        const item = container.querySelector(`.line-item[data-index="${newIndex}"]`);
+        if (item) {
+          item.remove();
+          this.recalculateManualTotals();
+        }
+      });
+    }
+  }
+
+  updateManualItem(index, field, value) {
+    if (field === 'quantity' || field === 'rate') {
+      const qtyInput = document.querySelector(`input[data-field="quantity"][data-index="${index}"]`);
+      const rateInput = document.querySelector(`input[data-field="rate"][data-index="${index}"]`);
+      const amountInput = document.querySelector(`input[data-field="amount"][data-index="${index}"]`);
+
+      const qty = parseFloat(qtyInput?.value) || 0;
+      const rate = parseFloat(rateInput?.value) || 0;
+      const amount = this.calculator.roundToTwo(qty * rate);
+
+      if (amountInput) {
+        amountInput.value = amount;
+      }
+    }
+
+    this.recalculateManualTotals();
+  }
+
+  recalculateManualTotals() {
+    // Calculate subtotal from all items
+    const amountInputs = document.querySelectorAll('input[data-field="amount"]');
+    let subtotal = 0;
+    
+    amountInputs.forEach(input => {
+      subtotal += parseFloat(input.value) || 0;
+    });
+
+    // Update subtotal
+    const subtotalInput = document.getElementById('manual-subtotal');
+    if (subtotalInput) {
+      subtotalInput.value = this.calculator.roundToTwo(subtotal);
+    }
+
+    // Calculate tax
+    const taxPercentInput = document.getElementById('manual-tax-percent');
+    const taxInput = document.getElementById('manual-tax');
+    
+    let tax = 0;
+    if (taxPercentInput && taxInput) {
+      const taxPercent = parseFloat(taxPercentInput.value) || 0;
+      if (taxPercent > 0) {
+        tax = this.calculator.roundToTwo((subtotal * taxPercent) / 100);
+        taxInput.value = tax;
+      } else {
+        tax = parseFloat(taxInput.value) || 0;
+      }
+    }
+
+    // Calculate and update total
+    const total = this.calculator.roundToTwo(subtotal + tax);
+    const totalInput = document.getElementById('manual-total');
+    if (totalInput) {
+      totalInput.value = total;
+    }
+  }
+
+  getManualFormData(vendorId, vendorName) {
+    const date = document.getElementById('manual-date')?.value;
+    const notes = document.getElementById('manual-notes')?.value || '';
+    const subtotal = parseFloat(document.getElementById('manual-subtotal')?.value) || 0;
+    const tax = parseFloat(document.getElementById('manual-tax')?.value) || 0;
+    const taxPercent = parseFloat(document.getElementById('manual-tax-percent')?.value) || 0;
+    const total = parseFloat(document.getElementById('manual-total')?.value) || 0;
+
+    // Get all items
+    const items = [];
+    const itemElements = document.querySelectorAll('.line-item');
+    
+    itemElements.forEach(itemEl => {
+      const index = itemEl.dataset.index;
+      const name = document.querySelector(`input[data-field="name"][data-index="${index}"]`)?.value || '';
+      const quantity = parseFloat(document.querySelector(`input[data-field="quantity"][data-index="${index}"]`)?.value) || 0;
+      const rate = parseFloat(document.querySelector(`input[data-field="rate"][data-index="${index}"]`)?.value) || 0;
+      const lineAmount = parseFloat(document.querySelector(`input[data-field="amount"][data-index="${index}"]`)?.value) || 0;
+
+      if (name.trim()) {
+        items.push({ name, quantity, rate, lineAmount });
+      }
+    });
+
+    // Validation
+    if (!date) {
+      Modal.alert('Error', 'Please select a date', 'danger');
+      return null;
+    }
+
+    if (items.length === 0) {
+      Modal.alert('Error', 'Please add at least one item', 'danger');
+      return null;
+    }
+
+    if (total <= 0) {
+      Modal.alert('Error', 'Total amount must be greater than 0', 'danger');
+      return null;
+    }
+
+    return {
+      vendorId,
+      vendorName,
+      date,
+      items,
+      subtotal,
+      tax,
+      taxPercent,
+      total,
+      notes
+    };
   }
 
   async processPurchaseOCR(vendorId, imageData) {

@@ -61,8 +61,12 @@ class OCREngine {
             return null;
         }
 
-        const lines = ocrResult.lines.filter(line => line.trim().length > 0);
+        const lines = ocrResult.lines
+            .filter(line => line.trim().length > 0)
+            .map(line => line.trim());
         const text = ocrResult.text;
+        
+        console.log('OCR Lines to parse:', lines);
         
         const parsed = {
             partyName: '',
@@ -76,24 +80,42 @@ class OCREngine {
             confidence: ocrResult.confidence
         };
 
-        // Extract party name (usually first 2-3 non-empty lines, look for company-like names)
-        const companyPatterns = [
-            /^[A-Z][A-Za-z\s&\.]+(?:Ltd|Limited|Inc|Corp|Co|Pvt|Private)?$/i,
-            /^[A-Z][A-Za-z\s&\.]{3,50}$/
+        // Skip common noise words/patterns
+        const noisePatterns = [
+            /^[\*\-\.=_]+$/,  // Just symbols
+            /^page \d+/i,
+            /^thank you/i,
+            /^visit us/i,
+            /^www\./i,
+            /^http/i,
+            /^\+91/,  // Phone numbers
+            /^GSTIN/i,
+            /^PAN/i,
+            /^[A-Z0-9]{15}$/  // GST numbers
         ];
+
+        // Clean lines by removing noise
+        const cleanLines = lines.filter(line => {
+            return !noisePatterns.some(pattern => pattern.test(line)) && line.length > 2;
+        });
+
+        // Extract party name (first meaningful line that looks like a business name)
+        const companyKeywords = ['limited', 'ltd', 'pvt', 'inc', 'corp', 'co', 'store', 'shop', 'mart', 'traders', 'enterprise'];
         
-        for (let i = 0; i < Math.min(5, lines.length); i++) {
-            const line = lines[i].trim();
-            // Skip lines that are dates, addresses, or numbers
-            if (!line.match(/^\d/) && !line.match(/^\d{1,2}[\/\-\.]\d/) && line.length > 3) {
-                if (companyPatterns.some(pattern => pattern.test(line))) {
-                    parsed.partyName = line;
-                    break;
-                }
-                // Fallback: first substantial line
-                if (!parsed.partyName && line.length > 5 && i < 3) {
-                    parsed.partyName = line;
-                }
+        for (let i = 0; i < Math.min(5, cleanLines.length); i++) {
+            const line = cleanLines[i];
+            // Skip dates, phone numbers, addresses
+            if (line.match(/^\d/) || line.match(/[\d\/\-\.]{8,}/)) continue;
+            
+            // Check if line contains company keywords or is title case
+            const hasCompanyKeyword = companyKeywords.some(kw => line.toLowerCase().includes(kw));
+            const isTitleCase = /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/.test(line);
+            const isAllCaps = line === line.toUpperCase() && line.length > 4;
+            
+            if (hasCompanyKeyword || isTitleCase || isAllCaps) {
+                parsed.partyName = line;
+                console.log('Extracted party name:', line);
+                break;
             }
         }
 
@@ -149,83 +171,26 @@ class OCREngine {
     extractItemsAdvanced(lines, fullText) {
         const items = [];
         
+        // Skip noise patterns for items
+        const itemNoisePatterns = [
+            /^[*\-\.=_]+$/,
+            /^(invoice|bill|receipt|tax invoice)/i,
+            /^(date|time|tel|ph|mob|email|address)/i,
+            /^(gstin|pan|cin|fssai)/i,
+            /^(thank you|visit|call|order)/i,
+            /^[A-Z0-9]{15,}$/  // Long alphanumeric (like GST numbers)
+        ];
+        
         // Strategy 1: Table-like structure with columns (Item, Qty, Rate, Amount)
         const tablePattern = /^(.+?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:,\d+)*(?:\.\d+)?)\s+(\d+(?:,\d+)*(?:\.\d+)?)$/;
         
         // Strategy 2: Item with price at end
-        const itemPricePattern = /^(.+?)\s+(?:Rs\.?|₹)?\s*(\d+(?:,\d+)*(?:\.\d+)?)$/;
+        const itemPricePattern = /^(.+?)\s+(?:Rs\\.?|₹)?\s*(\d+(?:,\d+)*(?:\.\d+)?)$/;
         
         // Strategy 3: Quantity * Rate = Amount pattern
         const qtyRatePattern = /(.+?)\s+(\d+)\s*[xX×]\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*=?\s*(\d+(?:,\d+)*(?:\.\d+)?)/;
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            
-            // Skip header rows and total rows
-            if (this.isHeaderOrTotalRow(line)) {
-                continue;
-            }
-
-            // Try table pattern first (most structured)
-            const tableMatch = line.match(tablePattern);
-            if (tableMatch) {
-                const name = tableMatch[1].trim();
-                const qty = parseFloat(tableMatch[2]);
-                const rate = parseFloat(tableMatch[3].replace(/,/g, ''));
-                const amount = parseFloat(tableMatch[4].replace(/,/g, ''));
-                
-                if (name && qty > 0 && rate > 0) {
-                    items.push({
-                        name,
-                        quantity: qty,
-                        rate: rate,
-                        lineAmount: amount || (qty * rate)
-                    });
-                    continue;
-                }
-            }
-
-            // Try quantity * rate pattern
-            const qtyRateMatch = line.match(qtyRatePattern);
-            if (qtyRateMatch) {
-                const name = qtyRateMatch[1].trim();
-                const qty = parseFloat(qtyRateMatch[2]);
-                const rate = parseFloat(qtyRateMatch[3].replace(/,/g, ''));
-                const amount = parseFloat(qtyRateMatch[4].replace(/,/g, ''));
-                
-                items.push({
-                    name,
-                    quantity: qty,
-                    rate: rate,
-                    lineAmount: amount
-                });
-                continue;
-            }
-
-            // Try simple item-price pattern
-            const itemPriceMatch = line.match(itemPricePattern);
-            if (itemPriceMatch && !line.match(/total|tax|discount|subtotal/i)) {
-                const name = itemPriceMatch[1].trim();
-                const amount = parseFloat(itemPriceMatch[2].replace(/,/g, ''));
-                
-                if (name.length > 2 && amount > 0 && amount < 1000000) {
-                    items.push({
-                        name,
-                        quantity: 1,
-                        rate: amount,
-                        lineAmount: amount
-                    });
-                }
-            }
-        }
-
-        // If still no items, try heuristic approach
-        if (items.length === 0) {
-            return this.extractItemsHeuristic(lines);
-        }
-
-        return items;
-    }
+        let itemStarted = false;\n        let itemEndIndex = lines.length;\n\n        // Find where items section starts and ends\n        for (let i = 0; i < lines.length; i++) {\n            const line = lines[i].toLowerCase();\n            if (line.includes('item') || line.includes('description') || line.includes('particulars')) {\n                itemStarted = true;\n            }\n            if ((line.includes('subtotal') || line.includes('total') || line.includes('amount')) && itemStarted) {\n                itemEndIndex = i;\n                break;\n            }\n        }\n\n        console.log('Item extraction range:', itemStarted ? 'found' : 'not found', 'End index:', itemEndIndex);\n\n        for (let i = 0; i < Math.min(itemEndIndex, lines.length); i++) {\n            const line = lines[i].trim();\n            \n            // Skip noise patterns\n            if (itemNoisePatterns.some(pattern => pattern.test(line))) {\n                continue;\n            }\n            \n            // Skip header rows and total rows\n            if (this.isHeaderOrTotalRow(line)) {\n                continue;\n            }\n\n            // Must have at least one number to be an item\n            if (!/\\d/.test(line)) {\n                continue;\n            }\n\n            // Try table pattern first (most structured)\n            const tableMatch = line.match(tablePattern);\n            if (tableMatch) {\n                const name = tableMatch[1].trim();\n                const qty = parseFloat(tableMatch[2]);\n                const rate = parseFloat(tableMatch[3].replace(/,/g, ''));\n                const amount = parseFloat(tableMatch[4].replace(/,/g, ''));\n                \n                // Validate item name is reasonable\n                if (name && name.length > 1 && name.length < 100 && qty > 0 && rate > 0 && rate < 1000000) {\n                    items.push({\n                        name,\n                        quantity: qty,\n                        rate: rate,\n                        lineAmount: amount || (qty * rate)\n                    });\n                    console.log('Extracted item (table):', name);\n                    continue;\n                }\n            }\n\n            // Try quantity * rate pattern\n            const qtyRateMatch = line.match(qtyRatePattern);\n            if (qtyRateMatch) {\n                const name = qtyRateMatch[1].trim();\n                const qty = parseFloat(qtyRateMatch[2]);\n                const rate = parseFloat(qtyRateMatch[3].replace(/,/g, ''));\n                const amount = parseFloat(qtyRateMatch[4].replace(/,/g, ''));\n                \n                if (name && name.length > 1 && qty > 0 && rate > 0) {\n                    items.push({\n                        name,\n                        quantity: qty,\n                        rate: rate,\n                        lineAmount: amount\n                    });\n                    console.log('Extracted item (qty*rate):', name);\n                    continue;\n                }\n            }\n\n            // Try simple item-price pattern (last resort)\n            const itemPriceMatch = line.match(itemPricePattern);\n            if (itemPriceMatch && !line.match(/total|tax|discount|subtotal|paid|balance/i)) {\n                const name = itemPriceMatch[1].trim();\n                const amount = parseFloat(itemPriceMatch[2].replace(/,/g, ''));\n                \n                // More strict validation for single-price items\n                if (name.length > 2 && name.length < 100 && amount > 0 && amount < 100000) {\n                    items.push({\n                        name,\n                        quantity: 1,\n                        rate: amount,\n                        lineAmount: amount\n                    });\n                    console.log('Extracted item (simple):', name);\n                }\n            }\n        }\n\n        console.log('Total items extracted:', items.length);\n\n        // Don't use heuristic if we found structured items\n        if (items.length > 0) {\n            return items;\n        }\n\n        // Only use heuristic as absolute last resort\n        console.log('No items found, trying heuristic...');\n        return [];\n    }
 
     // Check if line is a header or total row
     isHeaderOrTotalRow(line) {
