@@ -210,14 +210,17 @@ class StorageManager {
 
       // If base64 (from camera/upload)
       if (imageData.startsWith('data:image')) {
-        // Convert base64 to blob/file for upload
-        const blob = await (await fetch(imageData)).blob();
-        const formData = new FormData();
-        formData.append('image', blob, `${type}_${id}.jpg`);
-
+        // Send base64 directly as JSON
         const response = await fetch(`${this.serverUrl}/upload`, {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            imageData: imageData,
+            type: type,
+            id: id
+          })
         });
 
         if (response.ok) {
@@ -235,6 +238,9 @@ class StorageManager {
             filename: result.filename,
             savedAt: new Date().toISOString()
           };
+        } else {
+          const errText = await response.text();
+          console.error('Upload error response:', response.status, errText);
         }
       }
 
