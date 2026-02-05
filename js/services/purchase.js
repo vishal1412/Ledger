@@ -24,6 +24,9 @@ class PurchaseService {
             vendorName: purchaseData.vendorName,
             date: purchaseData.date || new Date().toISOString(),
             items: validated.items,
+            subtotal: purchaseData.subtotal || 0,
+            tax: purchaseData.tax || 0,
+            taxPercent: purchaseData.taxPercent || 0,
             total: validated.total,
             originalTotal: validated.originalTotal,
             totalWasCorrected: validated.totalWasCorrected,
@@ -60,7 +63,7 @@ class PurchaseService {
         return {
             success: true,
             purchase: savedPurchase,
-            message: `Purchase created successfully${validated.corrections.totalCorrections > 0 ? ' with corrections' : ''}`
+            message: `Purchase created successfully${validated.corrections.totalCorrections > 0 ? ' with corrections' : ''}. Image ${imageInfo ? 'saved' : 'storage failed'}.`
         };
     }
 
