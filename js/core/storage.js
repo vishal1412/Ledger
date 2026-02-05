@@ -1,6 +1,7 @@
 // ===================================
 // HYBRID STORAGE MANAGER (Server + Local)
 // ===================================
+console.log('📦 STORAGE.JS FILE LOADING...');
 
 class StorageManager {
   constructor() {

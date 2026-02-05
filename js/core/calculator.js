@@ -1,6 +1,7 @@
 // ===================================
 // CALCULATION VALIDATION ENGINE
 // ===================================
+console.log('🧮 CALCULATOR.JS FILE LOADING...');
 
 class CalculationValidator {
     constructor() {
