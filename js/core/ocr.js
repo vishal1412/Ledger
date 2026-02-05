@@ -91,12 +91,6 @@ class OCREngine {
             };
         }
     }
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
 
     // Parse invoice/bill structure from OCR text
     parseInvoice(ocrResult) {
