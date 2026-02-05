@@ -11,7 +11,19 @@ class OCREngine {
 
     // Initialize Tesseract worker
     async initialize() {
+        if (this.isReady) {
+            console.log('OCR Engine already initialized');
+            return true;
+        }
+
         try {
+            console.log('Initializing OCR Engine...');
+            
+            // Check if Tesseract is available
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Tesseract library not loaded');
+            }
+
             // Create Tesseract worker
             this.worker = await Tesseract.createWorker('eng', 1, {
                 logger: m => {
@@ -20,22 +32,35 @@ class OCREngine {
                     }
                 }
             });
+            
             this.isReady = true;
-            console.log('OCR Engine initialized');
+            console.log('✓ OCR Engine initialized successfully');
+            return true;
         } catch (error) {
-            console.error('Error initializing OCR:', error);
+            console.error('✗ Error initializing OCR:', error);
             this.isReady = false;
+            return false;
         }
     }
 
     // Process image and extract text
     async processImage(imageData) {
-        if (!this.isReady) {
-            await this.initialize();
+        if (!this.isReady || !this.worker) {
+            console.log('OCR Engine not ready, initializing...');
+            const initialized = await this.initialize();
+            if (!initialized) {
+                return {
+                    success: false,
+                    error: 'Failed to initialize OCR engine'
+                };
+            }
         }
 
         try {
+            console.log('Processing image with OCR...');
             const { data } = await this.worker.recognize(imageData);
+            console.log('OCR processing complete');
+            
             return {
                 success: true,
                 text: data.text,
@@ -48,6 +73,12 @@ class OCREngine {
             };
         } catch (error) {
             console.error('Error processing image:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
             return {
                 success: false,
                 error: error.message

@@ -17,10 +17,18 @@ class App {
         console.log('Checking dependencies...');
         console.log('Storage:', typeof window.storage);
         console.log('Calculator:', typeof window.calculator);
+        console.log('OCR Engine:', typeof window.ocrEngine);
         console.log('Party Service:', typeof window.partyService);
         console.log('Stock Service:', typeof window.stockService);
         console.log('DashboardPage:', typeof DashboardPage);
         console.log('PartiesPage:', typeof PartiesPage);
+
+        // Check if OCR Engine is available
+        if (!window.ocrEngine) {
+            console.warn('⚠️ OCR Engine not initialized, OCR features may not work');
+        } else {
+            console.log('✓ OCR Engine available');
+        }
 
         // Initialize pages now that all services are loaded
         console.log('Initializing pages...');

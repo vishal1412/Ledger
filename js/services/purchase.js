@@ -172,6 +172,21 @@ class PurchaseService {
     // Process OCR purchase
     async processPurchaseFromOCR(imageData, vendorId) {
         try {
+            // Check if OCR engine is available
+            if (!window.ocrEngine) {
+                console.error('OCR Engine not initialized');
+                return {
+                    success: false,
+                    error: 'OCR Engine is not available. Please refresh the page and try again.'
+                };
+            }
+
+            // Wait for OCR engine to be ready
+            if (!window.ocrEngine.isReady) {
+                console.log('Waiting for OCR Engine to initialize...');
+                await window.ocrEngine.initialize();
+            }
+
             // Process image with OCR
             const result = await window.ocrEngine.processAndValidate(imageData);
 
@@ -192,8 +207,12 @@ class PurchaseService {
                     vendorName: vendor?.name || result.data.partyName,
                     date: result.data.date,
                     items: result.data.items,
+                    subtotal: result.data.subtotal,
+                    tax: result.data.tax,
+                    taxPercent: result.data.taxPercent,
                     total: result.data.total,
                     corrections: result.data.corrections,
+                    validationSummary: result.data.validationSummary,
                     ocrData: {
                         rawText: result.data.rawText,
                         confidence: result.data.confidence
