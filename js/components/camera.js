@@ -133,9 +133,20 @@ class CameraCapture {
             }
         });
 
-        const modalEl = modal.open();
-        const bodyEl = modalEl.querySelector('.modal-body');
-        camera.createCameraUI(bodyEl);
+        try {
+            const modalEl = modal.open();
+            const bodyEl = modalEl.querySelector('.modal-body');
+            
+            if (!bodyEl) {
+                throw new Error('Modal body not found');
+            }
+            
+            camera.createCameraUI(bodyEl);
+        } catch (error) {
+            console.error('Error opening camera modal:', error);
+            modal.close();
+            if (onError) onError(error);
+        }
 
         return { modal, camera };
     }
@@ -148,19 +159,45 @@ class CameraCapture {
             input.accept = accept;
 
             input.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
+                try {
+                    const file = e.target.files[0];
+                    if (!file) {
+                        reject(new Error('No file selected'));
+                        return;
+                    }
+
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        reject(new Error('Please select an image file'));
+                        return;
+                    }
+
+                    // Validate file size (max 10MB)
+                    if (file.size > 10 * 1024 * 1024) {
+                        reject(new Error('Image size should be less than 10MB'));
+                        return;
+                    }
+
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         const imageData = event.target.result;
                         if (onSelect) onSelect(imageData);
                         resolve(imageData);
                     };
-                    reader.onerror = reject;
+                    reader.onerror = (error) => {
+                        console.error('FileReader error:', error);
+                        reject(new Error('Failed to read image file'));
+                    };
                     reader.readAsDataURL(file);
-                } else {
-                    reject(new Error('No file selected'));
+                } catch (error) {
+                    console.error('File upload error:', error);
+                    reject(error);
                 }
+            });
+
+            // Handle cancel
+            input.addEventListener('cancel', () => {
+                reject(new Error('File selection cancelled'));
             });
 
             input.click();

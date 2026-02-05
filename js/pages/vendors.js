@@ -187,22 +187,41 @@ class VendorsPage {
   }
 
   async capturePurchasePhoto(vendorId) {
-    CameraCapture.openCameraModal(
-      async (imageData) => {
-        await this.processPurchaseOCR(vendorId, imageData);
-      },
-      (error) => {
-        Modal.alert('Error', 'Camera access failed: ' + error.message, 'danger');
-      }
-    );
+    try {
+      CameraCapture.openCameraModal(
+        async (imageData) => {
+          if (!imageData) {
+            Modal.alert('Error', 'No image captured', 'danger');
+            return;
+          }
+          await this.processPurchaseOCR(vendorId, imageData);
+        },
+        (error) => {
+          console.error('Camera error:', error);
+          Modal.alert('Camera Error', error.message || 'Failed to access camera. Please check permissions.', 'danger');
+        }
+      );
+    } catch (error) {
+      console.error('Camera capture error:', error);
+      Modal.alert('Error', 'Failed to open camera: ' + error.message, 'danger');
+    }
   }
 
   async uploadPurchasePhoto(vendorId) {
     try {
       const imageData = await CameraCapture.openFileUpload();
+      
+      if (!imageData) {
+        Modal.alert('Error', 'No image selected', 'danger');
+        return;
+      }
+      
       await this.processPurchaseOCR(vendorId, imageData);
     } catch (error) {
-      Modal.alert('Error', 'File upload failed', 'danger');
+      console.error('File upload error:', error);
+      if (error.message !== 'File selection cancelled') {
+        Modal.alert('Upload Error', error.message || 'Failed to upload image', 'danger');
+      }
     }
   }
 
