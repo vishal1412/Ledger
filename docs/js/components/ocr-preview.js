@@ -81,29 +81,39 @@ class OCRPreview {
       <div class="line-item ${item.wasAutoCorrected ? 'corrected' : ''}" data-index="${index}">
         <div>
           <label class="text-xs text-gray">Item Name</label>
-          <input type="text" class="form-input" value="${item.name}" 
-                 data-field="name" data-index="${index}" />
+          <input type="text" class="form-input" value="${this.escapeHtml(item.name || '')}" 
+                 data-field="name" data-index="${index}" required />
         </div>
         <div>
           <label class="text-xs text-gray">Qty</label>
-          <input type="number" step="0.01" class="form-input" value="${item.quantity}" 
-                 data-field="quantity" data-index="${index}" />
+          <input type="number" step="0.01" class="form-input" value="${item.quantity || 1}" 
+                 data-field="quantity" data-index="${index}" min="0.01" required />
         </div>
         <div>
           <label class="text-xs text-gray">Rate</label>
-          <input type="number" step="0.01" class="form-input" value="${item.rate}" 
-                 data-field="rate" data-index="${index}" />
+          <input type="number" step="0.01" class="form-input" value="${item.rate || 0}" 
+                 data-field="rate" data-index="${index}" min="0" required />
         </div>
         <div>
           <label class="text-xs text-gray">Amount</label>
-          <input type="number" step="0.01" class="form-input" value="${item.correctedAmount || item.lineAmount}" 
-                 data-field="amount" data-index="${index}" />
+          <input type="number" step="0.01" class="form-input" value="${item.correctedAmount || item.lineAmount || 0}" 
+                 data-field="amount" data-index="${index}" readonly />
           ${item.wasAutoCorrected ? `
             <span class="ocr-correction-badge">Corrected</span>
           ` : ''}
         </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button type="button" class="btn btn-sm btn-ghost remove-item-btn" data-index="${index}" style="color: #dc2626;">✕</button>
+        </div>
       </div>
     `).join('');
+    }
+
+    // Escape HTML to prevent XSS
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Setup event listeners
@@ -114,15 +124,39 @@ class OCRPreview {
             addBtn.addEventListener('click', () => this.addNewItem());
         }
 
+        // Remove item buttons
+        document.querySelectorAll('.remove-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                this.removeItem(index);
+            });
+        });
+
         // Line item inputs - auto-calculate
         const lineItemInputs = document.querySelectorAll('.line-item input');
         lineItemInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                const field = e.target.dataset.field;
-                this.updateLineItem(index, field, e.target.value);
-            });
+            if (input.dataset.field !== 'amount') {
+                input.addEventListener('input', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const field = e.target.dataset.field;
+                    this.updateLineItem(index, field, e.target.value);
+                });
+            }
         });
+    }
+
+    // Remove item
+    removeItem(index) {
+        if (this.ocrData.items.length <= 1) {
+            Modal.alert('Error', 'At least one item is required', 'warning');
+            return;
+        }
+        
+        this.ocrData.items.splice(index, 1);
+        const container = document.getElementById('line-items-container');
+        container.innerHTML = this.renderLineItems();
+        this.setupEventListeners();
+        this.recalculateTotal();
     }
 
     // Add new item
