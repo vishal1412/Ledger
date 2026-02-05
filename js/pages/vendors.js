@@ -188,8 +188,7 @@ class VendorsPage {
 
     document.getElementById('manual-btn').addEventListener('click', () => {
       modal.close();
-      // Would open manual entry form (simplified for brevity)
-      Modal.alert('Manual Entry', 'Manual entry form would open here. Use Camera/Upload for OCR.');
+      this.showManualPurchaseForm(vendorId);
     });
   }
 
@@ -211,6 +210,116 @@ class VendorsPage {
     } catch (error) {
       Modal.alert('Error', 'File upload failed', 'danger');
     }
+  }
+
+  async showManualPurchaseForm(vendorId) {
+    const vendor = await this.partyService.getPartyById(vendorId);
+    const modal = new Modal({
+      title: 'Manual Purchase Entry',
+      size: 'large',
+      content: Forms.createManualPurchaseForm(vendor)
+    });
+
+    modal.open();
+
+    // Setup item row calculations
+    const setupItemRow = (row) => {
+      const qtyInput = row.querySelector('[data-field="quantity"]');
+      const rateInput = row.querySelector('[data-field="rate"]');
+      const amountInput = row.querySelector('[data-field="amount"]');
+      const removeBtn = row.querySelector('.remove-item-btn');
+
+      const calculateAmount = () => {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        amountInput.value = (qty * rate).toFixed(2);
+        updateTotal();
+      };
+
+      qtyInput.addEventListener('input', calculateAmount);
+      rateInput.addEventListener('input', calculateAmount);
+
+      // Remove item
+      removeBtn.addEventListener('click', () => {
+        const container = document.getElementById('items-container');
+        if (container.querySelectorAll('.item-row').length > 1) {
+          row.remove();
+          updateTotal();
+        } else {
+          Modal.alert('Error', 'At least one item is required', 'warning');
+        }
+      });
+    };
+
+    // Update total
+    const updateTotal = () => {
+      let total = 0;
+      document.querySelectorAll('#items-container .item-row [data-field="amount"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+      });
+      document.getElementById('purchase-total').value = total.toFixed(2);
+    };
+
+    // Add item button
+    document.getElementById('add-item-btn').addEventListener('click', () => {
+      const container = document.getElementById('items-container');
+      const itemCount = container.querySelectorAll('.item-row').length;
+      const newRow = document.createElement('div');
+      newRow.className = 'item-row';
+      newRow.dataset.itemIndex = itemCount;
+      newRow.innerHTML = `
+        <input type="text" class="form-input" placeholder="Item name" data-field="name" required />
+        <input type="number" class="form-input" placeholder="Qty" data-field="quantity" min="0.01" step="0.01" required />
+        <input type="number" class="form-input" placeholder="Rate" data-field="rate" min="0.01" step="0.01" required />
+        <input type="number" class="form-input" placeholder="Amount" data-field="amount" readonly />
+        <button type="button" class="btn btn-sm btn-ghost remove-item-btn">✕</button>
+      `;
+      container.appendChild(newRow);
+      setupItemRow(newRow);
+    });
+
+    // Setup initial row
+    setupItemRow(document.querySelector('.item-row'));
+
+    modal.addFooter([
+      { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+      {
+        text: 'Save Purchase',
+        className: 'btn btn-primary',
+        onClick: async () => {
+          const formData = Forms.getManualPurchaseFormData();
+
+          // Validate
+          if (!formData.items || formData.items.length === 0) {
+            Modal.alert('Error', 'Please add at least one item', 'warning');
+            return;
+          }
+
+          if (formData.total <= 0) {
+            Modal.alert('Error', 'Total amount must be greater than 0', 'warning');
+            return;
+          }
+
+          // Create purchase
+          const purchaseResult = await this.purchaseService.createPurchase({
+            vendorId,
+            vendorName: vendor.name,
+            date: formData.date,
+            items: formData.items,
+            total: formData.total,
+            notes: formData.notes
+          });
+
+          if (purchaseResult.success) {
+            modal.close();
+            Modal.alert('Success', purchaseResult.message, 'success');
+            this.render(document.getElementById('main-content'));
+          } else {
+            Modal.alert('Error', purchaseResult.message || 'Failed to create purchase', 'danger');
+          }
+        }
+      }
+    ]);
   }
 
   async processPurchaseOCR(vendorId, imageData) {
