@@ -9,8 +9,8 @@ class PartiesPage {
     }
 
     // Render parties page
-    render(container) {
-        const parties = this.partyService.getAllParties();
+    async render(container) {
+        const parties = await this.partyService.getAllParties();
 
         container.innerHTML = `
       <div class="page-header">
@@ -70,14 +70,13 @@ class PartiesPage {
           </thead>
           <tbody>
             ${parties.map(party => {
-            const balance = this.partyService.calculatePartyBalance(party.id);
             return `
                 <tr data-party-id="${party.id}">
                   <td><span class="badge badge-${party.type === 'Vendor' ? 'primary' : 'success'}">${party.type}</span></td>
                   <td class="font-medium">${party.name}</td>
                   <td>${party.phone || '-'}</td>
                   <td>${this.calculator.formatCurrency(party.openingBalance)}</td>
-                  <td class="font-bold">${this.calculator.formatCurrency(balance)}</td>
+                  <td class="font-bold">${this.calculator.formatCurrency(party.currentBalance || 0)}</td>
                   <td>
                     <button class="btn btn-sm btn-outline view-party-btn" data-id="${party.id}">View</button>
                     <button class="btn btn-sm btn-ghost edit-party-btn" data-id="${party.id}">Edit</button>

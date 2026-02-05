@@ -13,8 +13,8 @@ class DashboardPage {
     }
 
     // Render dashboard
-    render(container) {
-        const stats = this.getStats();
+    async render(container) {
+        const stats = await this.getStats();
 
         container.innerHTML = `
       <div class="page-header">
@@ -70,7 +70,7 @@ class DashboardPage {
             <h3 class="card-title">Recent Activity</h3>
           </div>
           <div class="card-body">
-            ${this.renderRecentActivity()}
+            ${await this.renderRecentActivity()}
           </div>
         </div>
 
@@ -80,7 +80,7 @@ class DashboardPage {
               <h3 class="card-title">⚠️ Low Stock Alerts</h3>
             </div>
             <div class="card-body">
-              ${this.renderLowStockAlerts()}
+              ${await this.renderLowStockAlerts()}
             </div>
           </div>
         ` : ''}
@@ -89,20 +89,22 @@ class DashboardPage {
     }
 
     // Get statistics
-    getStats() {
-        const vendors = this.partyService.getVendors();
-        const customers = this.partyService.getCustomers();
-        const stockStats = this.stockService.getStockStats();
-        const purchaseStats = this.purchaseService.getPurchaseStats();
-        const salesStats = this.salesService.getSaleStats();
+    async getStats() {
+        const vendors = await this.partyService.getVendors();
+        const customers = await this.partyService.getCustomers();
+        const stockStats = await this.stockService.getStockStats();
+        const purchaseStats = await this.purchaseService.getPurchaseStats();
+        const salesStats = await this.salesService.getSaleStats();
 
-        const totalPayable = vendors.reduce((sum, v) => {
-            return sum + this.partyService.calculatePartyBalance(v.id);
-        }, 0);
+        let totalPayable = 0;
+        for (const v of vendors) {
+            totalPayable += await this.partyService.calculatePartyBalance(v.id);
+        }
 
-        const totalReceivable = customers.reduce((sum, c) => {
-            return sum + this.partyService.calculatePartyBalance(c.id);
-        }, 0);
+        let totalReceivable = 0;
+        for (const c of customers) {
+            totalReceivable += await this.partyService.calculatePartyBalance(c.id);
+        }
 
         return {
             totalVendors: vendors.length,
@@ -120,10 +122,10 @@ class DashboardPage {
     }
 
     // Render recent activity
-    renderRecentActivity() {
-        const purchases = this.purchaseService.getAllPurchases().slice(0, 5);
-        const sales = this.salesService.getAllSales().slice(0, 5);
-        const payments = this.paymentService.getAllPayments().slice(0, 5);
+    async renderRecentActivity() {
+        const purchases = (await this.purchaseService.getAllPurchases()).slice(0, 5);
+        const sales = (await this.salesService.getAllSales()).slice(0, 5);
+        const payments = (await this.paymentService.getAllPayments()).slice(0, 5);
 
         const activities = [
             ...purchases.map(p => ({ ...p, type: 'purchase', date: p.createdAt })),
@@ -164,8 +166,8 @@ class DashboardPage {
     }
 
     // Render low stock alerts
-    renderLowStockAlerts() {
-        const lowStockItems = this.stockService.getLowStockItems();
+    async renderLowStockAlerts() {
+        const lowStockItems = await this.stockService.getLowStockItems();
 
         return lowStockItems.map(item => `
       <div class="flex items-center justify-between p-md mb-sm" style="border-bottom: 1px solid var(--gray-200);">
