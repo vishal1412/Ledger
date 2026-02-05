@@ -9,7 +9,7 @@ class PartyService {
     }
 
     // Create new party
-    createParty(partyData) {
+    async createParty(partyData) {
         const party = {
             type: partyData.type, // 'Vendor' or 'Customer'
             name: partyData.name,
@@ -21,33 +21,33 @@ class PartyService {
             createdAt: new Date().toISOString()
         };
 
-        return this.storage.addItem('parties', party);
+        return await this.storage.addItem('parties', party);
     }
 
     // Get all parties
-    getAllParties() {
-        return this.storage.getData('parties') || [];
+    async getAllParties() {
+        return await this.storage.getData('parties') || [];
     }
 
     // Get parties by type
-    getPartiesByType(type) {
-        return this.storage.filterItems('parties', party => party.type === type);
+    async getPartiesByType(type) {
+        return await this.storage.filterItems('parties', party => party.type === type);
     }
 
     // Get party by ID
-    getPartyById(id) {
-        return this.storage.getItemById('parties', id);
+    async getPartyById(id) {
+        return await this.storage.getItemById('parties', id);
     }
 
     // Update party
-    updateParty(id, updates) {
-        return this.storage.updateItem('parties', id, updates);
+    async updateParty(id, updates) {
+        return await this.storage.updateItem('parties', id, updates);
     }
 
     // Delete party
-    deleteParty(id) {
+    async deleteParty(id) {
         // Check if party has transactions
-        const transactions = this.getPartyTransactions(id);
+        const transactions = await this.getPartyTransactions(id);
         if (transactions.length > 0) {
             return {
                 success: false,
@@ -56,21 +56,21 @@ class PartyService {
         }
 
         return {
-            success: this.storage.deleteItem('parties', id),
+            success: await this.storage.deleteItem('parties', id),
             message: 'Party deleted successfully'
         };
     }
 
     // Get party transactions (purchases/sales/payments)
-    getPartyTransactions(partyId) {
-        const party = this.getPartyById(partyId);
+    async getPartyTransactions(partyId) {
+        const party = await this.getPartyById(partyId);
         if (!party) return [];
 
         const transactions = [];
 
         if (party.type === 'Vendor') {
             // Get purchases
-            const purchases = this.storage.filterItems('purchases', p => p.vendorId === partyId);
+            const purchases = await this.storage.filterItems('purchases', p => p.vendorId === partyId);
             purchases.forEach(p => {
                 transactions.push({
                     ...p,
@@ -81,7 +81,7 @@ class PartyService {
             });
 
             // Get payments
-            const payments = this.storage.filterItems('payments', p => p.partyId === partyId && p.partyType === 'Vendor');
+            const payments = await this.storage.filterItems('payments', p => p.partyId === partyId && p.partyType === 'Vendor');
             payments.forEach(p => {
                 transactions.push({
                     ...p,
@@ -92,7 +92,7 @@ class PartyService {
             });
         } else if (party.type === 'Customer') {
             // Get sales
-            const sales = this.storage.filterItems('sales', s => s.customerId === partyId);
+            const sales = await this.storage.filterItems('sales', s => s.customerId === partyId);
             sales.forEach(s => {
                 transactions.push({
                     ...s,
@@ -103,7 +103,7 @@ class PartyService {
             });
 
             // Get payments
-            const payments = this.storage.filterItems('payments', p => p.partyId === partyId && p.partyType === 'Customer');
+            const payments = await this.storage.filterItems('payments', p => p.partyId === partyId && p.partyType === 'Customer');
             payments.forEach(p => {
                 transactions.push({
                     ...p,
@@ -119,12 +119,12 @@ class PartyService {
     }
 
     // Calculate party balance
-    calculatePartyBalance(partyId) {
-        const party = this.getPartyById(partyId);
+    async calculatePartyBalance(partyId) {
+        const party = await this.getPartyById(partyId);
         if (!party) return 0;
 
         let balance = party.openingBalance || 0;
-        const transactions = this.getPartyTransactions(partyId);
+        const transactions = await this.getPartyTransactions(partyId);
 
         transactions.forEach(txn => {
             if (party.type === 'Vendor') {
@@ -146,14 +146,14 @@ class PartyService {
     }
 
     // Update party balance
-    updatePartyBalance(partyId) {
-        const balance = this.calculatePartyBalance(partyId);
-        return this.storage.updateItem('parties', partyId, { currentBalance: balance });
+    async updatePartyBalance(partyId) {
+        const balance = await this.calculatePartyBalance(partyId);
+        return await this.storage.updateItem('parties', partyId, { currentBalance: balance });
     }
 
     // Search parties
-    searchParties(query) {
-        const allParties = this.getAllParties();
+    async searchParties(query) {
+        const allParties = await this.getAllParties();
         const lowerQuery = query.toLowerCase();
 
         return allParties.filter(party =>
@@ -163,12 +163,12 @@ class PartyService {
     }
 
     // Get party statistics
-    getPartyStats(partyId) {
-        const party = this.getPartyById(partyId);
+    async getPartyStats(partyId) {
+        const party = await this.getPartyById(partyId);
         if (!party) return null;
 
-        const transactions = this.getPartyTransactions(partyId);
-        const balance = this.calculatePartyBalance(partyId);
+        const transactions = await this.getPartyTransactions(partyId);
+        const balance = await this.calculatePartyBalance(partyId);
 
         let totalPurchases = 0;
         let totalSales = 0;
@@ -192,13 +192,13 @@ class PartyService {
     }
 
     // Get all vendors
-    getVendors() {
-        return this.getPartiesByType('Vendor');
+    async getVendors() {
+        return await this.getPartiesByType('Vendor');
     }
 
     // Get all customers
-    getCustomers() {
-        return this.getPartiesByType('Customer');
+    async getCustomers() {
+        return await this.getPartiesByType('Customer');
     }
 }
 

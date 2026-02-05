@@ -61,7 +61,7 @@ class SalesService {
         };
 
         // Save sale
-        const savedSale = this.storage.addItem('sales', sale);
+        const savedSale = await this.storage.addItem('sales', sale);
 
         // Save image if provided
         if (saleData.imageData) {
@@ -72,15 +72,15 @@ class SalesService {
             );
             if (imageInfo) {
                 savedSale.imageUrl = imageInfo.url;
-                this.storage.updateItem('sales', savedSale.id, { imageUrl: imageInfo.url });
+                await this.storage.updateItem('sales', savedSale.id, { imageUrl: imageInfo.url });
             }
         }
 
         // Update stock
-        this.stockService.updateStockOnSale(validated.items, savedSale.id);
+        await this.stockService.updateStockOnSale(validated.items, savedSale.id);
 
         // Update customer balance
-        this.partyService.updatePartyBalance(saleData.customerId);
+        await this.partyService.updatePartyBalance(saleData.customerId);
 
         return {
             success: true,
@@ -90,51 +90,51 @@ class SalesService {
     }
 
     // Get all sales
-    getAllSales() {
-        return this.storage.getData('sales') || [];
+    async getAllSales() {
+        return await this.storage.getData('sales') || [];
     }
 
     // Get sale by ID
-    getSaleById(id) {
-        return this.storage.getItemById('sales', id);
+    async getSaleById(id) {
+        return await this.storage.getItemById('sales', id);
     }
 
     // Get sales by customer
-    getSalesByCustomer(customerId) {
-        return this.storage.filterItems('sales', s => s.customerId === customerId);
+    async getSalesByCustomer(customerId) {
+        return await this.storage.filterItems('sales', s => s.customerId === customerId);
     }
 
     // Get sales by date range
-    getSalesByDateRange(startDate, endDate) {
-        return this.storage.filterItems('sales', s => {
+    async getSalesByDateRange(startDate, endDate) {
+        return await this.storage.filterItems('sales', s => {
             const saleDate = new Date(s.date);
             return saleDate >= new Date(startDate) && saleDate <= new Date(endDate);
         });
     }
 
     // Delete sale
-    deleteSale(id) {
-        const sale = this.getSaleById(id);
+    async deleteSale(id) {
+        const sale = await this.getSaleById(id);
         if (!sale) {
             return { success: false, message: 'Sale not found' };
         }
 
         // Reverse stock updates
-        sale.items.forEach(item => {
-            const stockItem = this.stockService.getOrCreateStockItem(item.name);
+        for (const item of sale.items) {
+            const stockItem = await this.stockService.getOrCreateStockItem(item.name);
             const updatedStock = {
                 stockOut: stockItem.stockOut - item.quantity,
                 closingStock: stockItem.closingStock + item.quantity,
                 updatedAt: new Date().toISOString()
             };
-            this.storage.updateItem('stock', stockItem.id, updatedStock);
-        });
+            await this.storage.updateItem('stock', stockItem.id, updatedStock);
+        }
 
         // Delete sale
-        const deleted = this.storage.deleteItem('sales', id);
+        const deleted = await this.storage.deleteItem('sales', id);
 
         // Update customer balance
-        this.partyService.updatePartyBalance(sale.customerId);
+        await this.partyService.updatePartyBalance(sale.customerId);
 
         return {
             success: deleted,
@@ -143,8 +143,8 @@ class SalesService {
     }
 
     // Get sale statistics
-    getSaleStats() {
-        const sales = this.getAllSales();
+    async getSaleStats() {
+        const sales = await this.getAllSales();
 
         return {
             totalSales: sales.length,
@@ -176,7 +176,7 @@ class SalesService {
             }
 
             // Get customer info
-            const customer = this.partyService.getPartyById(customerId);
+            const customer = await this.partyService.getPartyById(customerId);
 
             return {
                 success: true,
@@ -207,18 +207,18 @@ class SalesService {
     }
 
     // Get sale image
-    getSaleImage(id) {
-        return this.storage.getImage('sales', id);
+    async getSaleImage(id) {
+        return await this.storage.getImage('sales', id);
     }
 
     // Update sale
-    updateSale(id, updates) {
-        return this.storage.updateItem('sales', id, updates);
+    async updateSale(id, updates) {
+        return await this.storage.updateItem('sales', id, updates);
     }
 
     // Search sales
-    searchSales(query) {
-        const sales = this.getAllSales();
+    async searchSales(query) {
+        const sales = await this.getAllSales();
         const lowerQuery = query.toLowerCase();
 
         return sales.filter(s =>
@@ -228,12 +228,12 @@ class SalesService {
     }
 
     // Get customer bill and cash pending
-    getCustomerPending(customerId) {
-        const customer = this.partyService.getPartyById(customerId);
+    async getCustomerPending(customerId) {
+        const customer = await this.partyService.getPartyById(customerId);
         if (!customer) return null;
 
-        const sales = this.getSalesByCustomer(customerId);
-        const payments = this.storage.filterItems('payments', p =>
+        const sales = await this.getSalesByCustomer(customerId);
+        const payments = await this.storage.filterItems('payments', p =>
             p.partyId === customerId && p.partyType === 'Customer'
         );
 

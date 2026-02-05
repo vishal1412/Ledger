@@ -10,7 +10,7 @@ class PaymentService {
     }
 
     // Record vendor payment
-    recordVendorPayment(paymentData) {
+    async recordVendorPayment(paymentData) {
         const payment = {
             partyId: paymentData.vendorId,
             partyType: 'Vendor',
@@ -23,10 +23,10 @@ class PaymentService {
         };
 
         // Save payment
-        const savedPayment = this.storage.addItem('payments', payment);
+        const savedPayment = await this.storage.addItem('payments', payment);
 
         // Update vendor balance
-        this.partyService.updatePartyBalance(paymentData.vendorId);
+        await this.partyService.updatePartyBalance(paymentData.vendorId);
 
         return {
             success: true,
@@ -36,7 +36,7 @@ class PaymentService {
     }
 
     // Record customer payment
-    recordCustomerPayment(paymentData) {
+    async recordCustomerPayment(paymentData) {
         const payment = {
             partyId: paymentData.customerId,
             partyType: 'Customer',
@@ -50,10 +50,10 @@ class PaymentService {
         };
 
         // Save payment
-        const savedPayment = this.storage.addItem('payments', payment);
+        const savedPayment = await this.storage.addItem('payments', payment);
 
         // Update customer balance
-        this.partyService.updatePartyBalance(paymentData.customerId);
+        await this.partyService.updatePartyBalance(paymentData.customerId);
 
         return {
             success: true,
@@ -63,50 +63,50 @@ class PaymentService {
     }
 
     // Get all payments
-    getAllPayments() {
-        return this.storage.getData('payments') || [];
+    async getAllPayments() {
+        return await this.storage.getData('payments') || [];
     }
 
     // Get payment by ID
-    getPaymentById(id) {
-        return this.storage.getItemById('payments', id);
+    async getPaymentById(id) {
+        return await this.storage.getItemById('payments', id);
     }
 
     // Get payments by party
-    getPaymentsByParty(partyId) {
-        return this.storage.filterItems('payments', p => p.partyId === partyId);
+    async getPaymentsByParty(partyId) {
+        return await this.storage.filterItems('payments', p => p.partyId === partyId);
     }
 
     // Get payments by date range
-    getPaymentsByDateRange(startDate, endDate) {
-        return this.storage.filterItems('payments', p => {
+    async getPaymentsByDateRange(startDate, endDate) {
+        return await this.storage.filterItems('payments', p => {
             const paymentDate = new Date(p.date);
             return paymentDate >= new Date(startDate) && paymentDate <= new Date(endDate);
         });
     }
 
     // Get vendor payments
-    getVendorPayments() {
-        return this.storage.filterItems('payments', p => p.partyType === 'Vendor');
+    async getVendorPayments() {
+        return await this.storage.filterItems('payments', p => p.partyType === 'Vendor');
     }
 
     // Get customer payments
-    getCustomerPayments() {
-        return this.storage.filterItems('payments', p => p.partyType === 'Customer');
+    async getCustomerPayments() {
+        return await this.storage.filterItems('payments', p => p.partyType === 'Customer');
     }
 
     // Delete payment
-    deletePayment(id) {
-        const payment = this.getPaymentById(id);
+    async deletePayment(id) {
+        const payment = await this.getPaymentById(id);
         if (!payment) {
             return { success: false, message: 'Payment not found' };
         }
 
         // Delete payment
-        const deleted = this.storage.deleteItem('payments', id);
+        const deleted = await this.storage.deleteItem('payments', id);
 
         // Update party balance
-        this.partyService.updatePartyBalance(payment.partyId);
+        await this.partyService.updatePartyBalance(payment.partyId);
 
         return {
             success: deleted,
@@ -115,8 +115,8 @@ class PaymentService {
     }
 
     // Get payment statistics
-    getPaymentStats() {
-        const payments = this.getAllPayments();
+    async getPaymentStats() {
+        const payments = await this.getAllPayments();
 
         const vendorPayments = payments.filter(p => p.partyType === 'Vendor');
         const customerPayments = payments.filter(p => p.partyType === 'Customer');
@@ -137,8 +137,8 @@ class PaymentService {
     }
 
     // Get payment mode statistics
-    getPaymentModeStats() {
-        const payments = this.getAllPayments();
+    async getPaymentModeStats() {
+        const payments = await this.getAllPayments();
 
         return {
             cash: {
@@ -157,20 +157,20 @@ class PaymentService {
     }
 
     // Update payment
-    updatePayment(id, updates) {
-        const updated = this.storage.updateItem('payments', id, updates);
+    async updatePayment(id, updates) {
+        const updated = await this.storage.updateItem('payments', id, updates);
 
         if (updated) {
             // Update party balance
-            this.partyService.updatePartyBalance(updated.partyId);
+            await this.partyService.updatePartyBalance(updated.partyId);
         }
 
         return updated;
     }
 
     // Search payments
-    searchPayments(query) {
-        const payments = this.getAllPayments();
+    async searchPayments(query) {
+        const payments = await this.getAllPayments();
         const lowerQuery = query.toLowerCase();
 
         return payments.filter(p =>

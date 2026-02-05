@@ -1,16 +1,17 @@
 // ===================================
-// HYBRID STORAGE MANAGER (Server + Local)
+// MONGODB STORAGE MANAGER
 // ===================================
 
 class StorageManager {
   constructor() {
     this.serverUrl = 'https://ledger-kappa-sage.vercel.app/api';
     this.isOnline = false;
-    this.imagePath = './images/'; // Default fallback
+    this.imagePath = './images/';
+    this.cache = {}; // In-memory cache for performance
+    this.initialized = false;
 
     // Attempt to initialize connection
     this.checkServerConnection();
-    this.initializeStorage();
   }
 
   async checkServerConnection() {
@@ -18,90 +19,135 @@ class StorageManager {
       const response = await fetch(`${this.serverUrl}/storage/settings`);
       this.isOnline = response.ok;
       if (this.isOnline) {
-        console.log('✅ Connected to Local Storage Server');
-        await this.syncFromServer();
+        console.log('✅ Connected to MongoDB Storage Server');
+        await this.initializeStorage();
+      } else {
+        console.error('❌ Server connection failed with status:', response.status);
+        throw new Error('Server not available');
       }
     } catch (e) {
-      console.warn('⚠️ Server not found. Running in Offline Mode (LocalStorage only).');
+      console.error('❌ Server not found. MongoDB storage requires a server connection.');
       this.isOnline = false;
+      // Show error to user - app cannot work without server
+      this.showOfflineError();
     }
   }
 
-  // Load all data from server to local cache
-  async syncFromServer() {
-    const collections = ['parties', 'purchases', 'sales', 'payments', 'stock', 'settings', 'stock_movements', 'alerts'];
-
-    console.log('🔄 Syncing data from server...');
-    for (const collection of collections) {
-      try {
-        const response = await fetch(`${this.serverUrl}/storage/${collection}`);
-        if (response.ok) {
-          const data = await response.json();
-          // Only update local if server has data
-          if (Array.isArray(data) && data.length > 0) {
-            localStorage.setItem(`business_ledger_${collection}`, JSON.stringify(data));
-          } else if (typeof data === 'object' && Object.keys(data).length > 0 && !Array.isArray(data)) {
-            localStorage.setItem(`business_ledger_${collection}`, JSON.stringify(data));
-          }
-        }
-      } catch (e) {
-        console.error(`Failed to sync ${collection}`, e);
-      }
+  showOfflineError() {
+    const message = '⚠️ Cannot connect to MongoDB server. Please ensure the server is running and accessible.';
+    console.error(message);
+    // Optionally show UI notification
+    if (document.body) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #ff6b6b;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        z-index: 10000;
+        font-weight: bold;
+      `;
+      notification.textContent = message;
+      document.body.insertBefore(notification, document.body.firstChild);
     }
-    console.log('✅ Sync complete');
-    // Dispatch event to refresh UI if needed
-    window.dispatchEvent(new CustomEvent('storage-synced'));
   }
 
-  // Initialize storage with default data structures
-  initializeStorage() {
-    const defaults = {
-      parties: [],
-      purchases: [],
-      sales: [],
-      payments: [],
-      stock: [],
-      settings: {
-        lowStockThreshold: 10,
-        currency: '₹'
-      }
-    };
-
-    Object.keys(defaults).forEach(key => {
-      if (!this.getData(key)) {
-        this.saveData(key, defaults[key], false); // Don't sync defaults back to server immediately on init to avoid overwriting
-      }
-    });
-  }
-
-  // Get data from localStorage (Synchronous for app performance)
-  getData(key) {
+  // Initialize storage - ensure MongoDB is connected and ready
+  async initializeStorage() {
+    if (this.initialized) return;
+    
     try {
-      const data = localStorage.getItem(`business_ledger_${key}`);
-      return data ? JSON.parse(data) : null;
+      // Test connection and initialize collections
+      const collections = ['parties', 'purchases', 'sales', 'payments', 'stock', 'settings', 'stock_movements', 'alerts', 'image_map'];
+      
+      for (const collection of collections) {
+        try {
+          await fetch(`${this.serverUrl}/storage/${collection}`);
+        } catch (e) {
+          console.error(`Failed to initialize collection: ${collection}`, e);
+        }
+      }
+      
+      this.initialized = true;
+      console.log('✅ Storage initialized with MongoDB');
+      window.dispatchEvent(new CustomEvent('storage-initialized'));
     } catch (error) {
-      console.error(`Error reading ${key}:`, error);
+      console.error('Error initializing storage:', error);
+    }
+  }
+
+  // Get data from MongoDB
+  async getData(key) {
+    if (!this.isOnline) {
+      console.error('❌ Cannot read data: Server offline');
+      return null;
+    }
+
+    try {
+      // Check cache first
+      if (this.cache[key]) {
+        return this.cache[key];
+      }
+
+      const response = await fetch(`${this.serverUrl}/storage/${key}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${key}: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Cache the result
+      this.cache[key] = data;
+      
+      return data || (Array.isArray(data) ? [] : null);
+    } catch (error) {
+      console.error(`Error reading ${key} from MongoDB:`, error);
       return null;
     }
   }
 
-  // Save data to localStorage AND Server
-  saveData(key, value, sync = true) {
-    try {
-      // 1. Save locally
-      localStorage.setItem(`business_ledger_${key}`, JSON.stringify(value));
+  // Get data synchronously from cache (with fallback to empty array/object)
+  getDataSync(key) {
+    if (this.cache[key] !== undefined) {
+      return this.cache[key];
+    }
+    return Array.isArray(this.cache[key]) ? [] : null;
+  }
 
-      // 2. Sync to server (Fire and forget)
-      if (sync && this.isOnline) {
-        fetch(`${this.serverUrl}/storage/${key}`, {
+  // Save data to MongoDB
+  async saveData(key, value, sync = true) {
+    if (!this.isOnline) {
+      console.error('❌ Cannot save data: Server offline');
+      return false;
+    }
+
+    try {
+      // Update cache immediately for responsive UI
+      this.cache[key] = value;
+
+      if (sync) {
+        const response = await fetch(`${this.serverUrl}/storage/${key}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(value)
-        }).catch(err => console.error(`Sync failed for ${key}:`, err));
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save ${key}: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log(`✅ Saved ${key} to MongoDB`);
+        return result.success || true;
       }
+
       return true;
     } catch (error) {
-      console.error(`Error saving ${key}:`, error);
+      console.error(`Error saving ${key} to MongoDB:`, error);
       return false;
     }
   }
@@ -112,53 +158,58 @@ class StorageManager {
   }
 
   // Add item to collection
-  addItem(collection, item) {
-    const data = this.getData(collection) || [];
+  async addItem(collection, item) {
+    const data = await this.getData(collection) || [];
     item.id = item.id || this.generateId();
     item.createdAt = item.createdAt || new Date().toISOString();
     item.updatedAt = new Date().toISOString();
     data.push(item);
-    this.saveData(collection, data);
+    await this.saveData(collection, data);
     return item;
   }
 
   // Update item in collection
-  updateItem(collection, id, updates) {
-    const data = this.getData(collection) || [];
+  async updateItem(collection, id, updates) {
+    const data = await this.getData(collection) || [];
     const index = data.findIndex(item => item.id === id);
     if (index !== -1) {
       data[index] = { ...data[index], ...updates, updatedAt: new Date().toISOString() };
-      this.saveData(collection, data);
+      await this.saveData(collection, data);
       return data[index];
     }
     return null;
   }
 
   // Delete item from collection
-  deleteItem(collection, id) {
-    const data = this.getData(collection) || [];
+  async deleteItem(collection, id) {
+    const data = await this.getData(collection) || [];
     const filtered = data.filter(item => item.id !== id);
-    this.saveData(collection, filtered);
+    await this.saveData(collection, filtered);
     return filtered.length < data.length;
   }
 
   // Get item by ID
-  getItemById(collection, id) {
-    const data = this.getData(collection) || [];
+  async getItemById(collection, id) {
+    const data = await this.getData(collection) || [];
     return data.find(item => item.id === id);
   }
 
   // Filter items
-  filterItems(collection, predicate) {
-    const data = this.getData(collection) || [];
+  async filterItems(collection, predicate) {
+    const data = await this.getData(collection) || [];
     return data.filter(predicate);
   }
 
-  // Save image to storage
+  // Save image to MongoDB storage
   async saveImage(imageData, type, id) {
     try {
+      if (!this.isOnline) {
+        console.error('❌ Cannot save image: Server offline');
+        return null;
+      }
+
       // If base64 (from camera/upload)
-      if (this.isOnline && imageData.startsWith('data:image')) {
+      if (imageData.startsWith('data:image')) {
         // Convert base64 to blob/file for upload
         const blob = await (await fetch(imageData)).blob();
         const formData = new FormData();
@@ -171,64 +222,48 @@ class StorageManager {
 
         if (response.ok) {
           const result = await response.json();
-          // Store the RELATIVE path returned by server, not the big base64 string
-          const serverPath = result.path; // e.g., "images/2023-10/123.jpg"
+          const serverPath = result.path;
 
-          // We map the object ID to this path in a special look-up or just return it
-          // For backward compatibility, we'll store the path in a lookup, but also return it
-
-          // Note: The UI expects base64 to show immediately. 
-          // We should ideally return the base64 for immediate display, but save the URL for persistence.
-
-          // To be compatible with old 'saveImage' which didn't modify the object directly but stored key:
-          // We'll update the 'images' collection map.
-          let imageMap = this.getData('image_map') || {};
+          // Store image path mapping in MongoDB
+          let imageMap = await this.getData('image_map') || {};
           imageMap[`${type}_${id}`] = serverPath;
-          this.saveData('image_map', imageMap);
+          await this.saveData('image_map', imageMap);
 
           return {
             path: serverPath,
-            url: `${this.serverUrl.replace('/api', '')}/${serverPath}`, // Construct full URL for display
+            url: `${this.serverUrl.replace('/api', '')}/${serverPath}`,
             filename: result.filename,
             savedAt: new Date().toISOString()
           };
         }
       }
 
-      // Fallback: LocalStorage Base64
-      const imageKey = `image_${type}_${id}`;
-      localStorage.setItem(imageKey, imageData);
-
-      return {
-        path: 'local',
-        url: imageData,
-        filename: 'local.jpg',
-        savedAt: new Date().toISOString()
-      };
+      console.error('Failed to upload image');
+      return null;
     } catch (error) {
       console.error('Error saving image:', error);
       return null;
     }
   }
 
-  // Get image from storage
-  getImage(type, id) {
-    // 1. Check server-synced map
-    const imageMap = this.getData('image_map');
-    if (imageMap && imageMap[`${type}_${id}`]) {
-      // Return full server URL or relative path?
-      // Server URL: http://localhost:3000/images/foo.jpg
-      return `${this.serverUrl.replace('/api', '')}/${imageMap[`${type}_${id}`]}`;
+  // Get image from MongoDB storage
+  async getImage(type, id) {
+    try {
+      // Check server-synced map
+      const imageMap = await this.getData('image_map');
+      if (imageMap && imageMap[`${type}_${id}`]) {
+        return `${this.serverUrl.replace('/api', '')}/${imageMap[`${type}_${id}`]}`;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting image:', error);
+      return null;
     }
-
-    // 2. Fallback to localStorage base64
-    const imageKey = `image_${type}_${id}`;
-    return localStorage.getItem(imageKey);
   }
 
-  // Export/Import helpers (unchanged...)
-  exportToJSON(collection) {
-    const data = this.getData(collection);
+  // Export data to JSON
+  async exportToJSON(collection) {
+    const data = await this.getData(collection);
     const dataStr = JSON.stringify(data, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -239,11 +274,12 @@ class StorageManager {
     URL.revokeObjectURL(url);
   }
 
+  // Import data from JSON
   async importFromJSON(collection, file) {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      this.saveData(collection, data);
+      await this.saveData(collection, data);
       return true;
     } catch (error) {
       console.error('Error importing JSON:', error);
@@ -251,24 +287,49 @@ class StorageManager {
     }
   }
 
-  clearAllData() {
+  // Clear all data from MongoDB
+  async clearAllData() {
     if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      const keys = Object.keys(localStorage).filter(key => key.startsWith('business_ledger_'));
-      keys.forEach(key => localStorage.removeItem(key));
-      this.initializeStorage();
-      return true;
+      try {
+        const collections = ['parties', 'purchases', 'sales', 'payments', 'stock', 'settings', 'stock_movements', 'alerts'];
+        
+        for (const collection of collections) {
+          await this.saveData(collection, []);
+        }
+        
+        // Clear cache
+        this.cache = {};
+        
+        console.log('✅ All data cleared from MongoDB');
+        return true;
+      } catch (error) {
+        console.error('Error clearing data:', error);
+        return false;
+      }
     }
     return false;
   }
 
-  getStats() {
-    return {
-      parties: (this.getData('parties') || []).length,
-      purchases: (this.getData('purchases') || []).length,
-      sales: (this.getData('sales') || []).length,
-      payments: (this.getData('payments') || []).length,
-      stockItems: (this.getData('stock') || []).length
-    };
+  // Get statistics
+  async getStats() {
+    try {
+      return {
+        parties: (await this.getData('parties') || []).length,
+        purchases: (await this.getData('purchases') || []).length,
+        sales: (await this.getData('sales') || []).length,
+        payments: (await this.getData('payments') || []).length,
+        stockItems: (await this.getData('stock') || []).length
+      };
+    } catch (error) {
+      console.error('Error getting stats:', error);
+      return {
+        parties: 0,
+        purchases: 0,
+        sales: 0,
+        payments: 0,
+        stockItems: 0
+      };
+    }
   }
 }
 

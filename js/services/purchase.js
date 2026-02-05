@@ -36,7 +36,7 @@ class PurchaseService {
         };
 
         // Save purchase
-        const savedPurchase = this.storage.addItem('purchases', purchase);
+        const savedPurchase = await this.storage.addItem('purchases', purchase);
 
         // Save image if provided
         if (purchaseData.imageData) {
@@ -47,15 +47,15 @@ class PurchaseService {
             );
             if (imageInfo) {
                 savedPurchase.imageUrl = imageInfo.url;
-                this.storage.updateItem('purchases', savedPurchase.id, { imageUrl: imageInfo.url });
+                await this.storage.updateItem('purchases', savedPurchase.id, { imageUrl: imageInfo.url });
             }
         }
 
         // Update stock
-        this.stockService.updateStockOnPurchase(validated.items, savedPurchase.id);
+        await this.stockService.updateStockOnPurchase(validated.items, savedPurchase.id);
 
         // Update vendor balance
-        this.partyService.updatePartyBalance(purchaseData.vendorId);
+        await this.partyService.updatePartyBalance(purchaseData.vendorId);
 
         return {
             success: true,
@@ -65,52 +65,52 @@ class PurchaseService {
     }
 
     // Get all purchases
-    getAllPurchases() {
-        return this.storage.getData('purchases') || [];
+    async getAllPurchases() {
+        return await this.storage.getData('purchases') || [];
     }
 
     // Get purchase by ID
-    getPurchaseById(id) {
-        return this.storage.getItemById('purchases', id);
+    async getPurchaseById(id) {
+        return await this.storage.getItemById('purchases', id);
     }
 
     // Get purchases by vendor
-    getPurchasesByVendor(vendorId) {
-        return this.storage.filterItems('purchases', p => p.vendorId === vendorId);
+    async getPurchasesByVendor(vendorId) {
+        return await this.storage.filterItems('purchases', p => p.vendorId === vendorId);
     }
 
     // Get purchases by date range
-    getPurchasesByDateRange(startDate, endDate) {
-        return this.storage.filterItems('purchases', p => {
+    async getPurchasesByDateRange(startDate, endDate) {
+        return await this.storage.filterItems('purchases', p => {
             const purchaseDate = new Date(p.date);
             return purchaseDate >= new Date(startDate) && purchaseDate <= new Date(endDate);
         });
     }
 
     // Delete purchase
-    deletePurchase(id) {
+    async deletePurchase(id) {
         // Note: In production, you'd want to reverse stock updates
-        const purchase = this.getPurchaseById(id);
+        const purchase = await this.getPurchaseById(id);
         if (!purchase) {
             return { success: false, message: 'Purchase not found' };
         }
 
         // Reverse stock updates
-        purchase.items.forEach(item => {
-            const stockItem = this.stockService.getOrCreateStockItem(item.name);
+        for (const item of purchase.items) {
+            const stockItem = await this.stockService.getOrCreateStockItem(item.name);
             const updatedStock = {
                 stockIn: stockItem.stockIn - item.quantity,
                 closingStock: stockItem.closingStock - item.quantity,
                 updatedAt: new Date().toISOString()
             };
-            this.storage.updateItem('stock', stockItem.id, updatedStock);
-        });
+            await this.storage.updateItem('stock', stockItem.id, updatedStock);
+        }
 
         // Delete purchase
-        const deleted = this.storage.deleteItem('purchases', id);
+        const deleted = await this.storage.deleteItem('purchases', id);
 
         // Update vendor balance
-        this.partyService.updatePartyBalance(purchase.vendorId);
+        await this.partyService.updatePartyBalance(purchase.vendorId);
 
         return {
             success: deleted,
@@ -119,8 +119,8 @@ class PurchaseService {
     }
 
     // Get purchase statistics
-    getPurchaseStats() {
-        const purchases = this.getAllPurchases();
+    async getPurchaseStats() {
+        const purchases = await this.getAllPurchases();
 
         return {
             totalPurchases: purchases.length,
@@ -146,7 +146,7 @@ class PurchaseService {
             }
 
             // Get vendor info
-            const vendor = this.partyService.getPartyById(vendorId);
+            const vendor = await this.partyService.getPartyById(vendorId);
 
             return {
                 success: true,
@@ -175,18 +175,18 @@ class PurchaseService {
     }
 
     // Get purchase image
-    getPurchaseImage(id) {
-        return this.storage.getImage('purchases', id);
+    async getPurchaseImage(id) {
+        return await this.storage.getImage('purchases', id);
     }
 
     // Update purchase
-    updatePurchase(id, updates) {
-        return this.storage.updateItem('purchases', id, updates);
+    async updatePurchase(id, updates) {
+        return await this.storage.updateItem('purchases', id, updates);
     }
 
     // Search purchases
-    searchPurchases(query) {
-        const purchases = this.getAllPurchases();
+    async searchPurchases(query) {
+        const purchases = await this.getAllPurchases();
         const lowerQuery = query.toLowerCase();
 
         return purchases.filter(p =>
