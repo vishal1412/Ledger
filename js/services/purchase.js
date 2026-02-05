@@ -172,9 +172,15 @@ class PurchaseService {
     // Process OCR purchase
     async processPurchaseFromOCR(imageData, vendorId) {
         try {
+            // Debug: Check window object
+            console.log('Checking OCR Engine availability...');
+            console.log('window.ocrEngine exists:', !!window.ocrEngine);
+            console.log('window.ocrEngine value:', window.ocrEngine);
+            
             // Check if OCR engine exists
             if (!window.ocrEngine) {
-                console.error('OCR Engine not initialized');
+                console.error('✗ OCR Engine not initialized - window.ocrEngine is:', window.ocrEngine);
+                console.error('Available window properties:', Object.keys(window).filter(k => k.includes('ocr')));
                 return {
                     success: false,
                     error: 'OCR Engine is not available. Please refresh the page and try again.'
@@ -182,7 +188,7 @@ class PurchaseService {
             }
 
             // Ensure OCR engine is initialized (it will wait if initialization is in progress)
-            console.log('Ensuring OCR Engine is ready...');
+            console.log('✓ OCR Engine found, ensuring it is ready...');
             const initialized = await window.ocrEngine.initialize();
             if (!initialized) {
                 return {
@@ -192,7 +198,7 @@ class PurchaseService {
             }
 
             // Process image with OCR
-            console.log('Processing image with OCR...');
+            console.log('✓ OCR Engine ready, processing image...');
             const result = await window.ocrEngine.processAndValidate(imageData);
 
             if (!result.success) {

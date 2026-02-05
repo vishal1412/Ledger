@@ -482,18 +482,32 @@ class OCREngine {
 }
 
 // Create global instance and initialize
-window.ocrEngine = new OCREngine();
-
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.ocrEngine.initialize().then(success => {
-            console.log('OCR Engine auto-initialized:', success);
+console.log('Creating OCR Engine instance...');
+try {
+    window.ocrEngine = new OCREngine();
+    console.log('✓ OCR Engine instance created:', window.ocrEngine);
+    
+    // Auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        console.log('Waiting for DOMContentLoaded to initialize OCR...');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded - Initializing OCR Engine...');
+            window.ocrEngine.initialize().then(success => {
+                console.log('✓ OCR Engine auto-initialized:', success);
+            }).catch(error => {
+                console.error('✗ OCR Engine auto-initialization failed:', error);
+            });
         });
-    });
-} else {
-    // DOM already loaded, initialize immediately
-    window.ocrEngine.initialize().then(success => {
-        console.log('OCR Engine auto-initialized:', success);
-    });
+    } else {
+        // DOM already loaded, initialize immediately
+        console.log('DOM already loaded - Initializing OCR Engine immediately...');
+        window.ocrEngine.initialize().then(success => {
+            console.log('✓ OCR Engine auto-initialized:', success);
+        }).catch(error => {
+            console.error('✗ OCR Engine auto-initialization failed:', error);
+        });
+    }
+} catch (error) {
+    console.error('✗ Failed to create OCR Engine instance:', error);
+    window.ocrEngine = null;
 }
