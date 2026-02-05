@@ -66,7 +66,7 @@ class StorageManager {
       
       for (const collection of collections) {
         try {
-          await fetch(`${this.serverUrl}/storage/${collection}`);
+          await fetch(`${this.serverUrl}/storage?collection=${collection}`);
         } catch (e) {
           console.error(`Failed to initialize collection: ${collection}`, e);
         }
@@ -93,7 +93,7 @@ class StorageManager {
         return this.cache[key];
       }
 
-      const response = await fetch(`${this.serverUrl}/storage/${key}`);
+      const response = await fetch(`${this.serverUrl}/storage?collection=${key}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${key}: ${response.status}`);
       }
@@ -130,7 +130,7 @@ class StorageManager {
       this.cache[key] = value;
 
       if (sync) {
-        const response = await fetch(`${this.serverUrl}/storage/${key}`, {
+        const response = await fetch(`${this.serverUrl}/storage?collection=${key}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(value)
