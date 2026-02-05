@@ -58,16 +58,39 @@ class CustomersPage {
         <div class="card-header">
           <h3 class="card-title">Customer List</h3>
         </div>
-        <div class="card-body">${this.renderCustomersList(customers)}</div>
+        <div class="card-body">${await this.renderCustomersList(customers)}</div>
       </div>
     `;
 
         this.setupEventListeners();
     }
 
-    renderCustomersList(customers) {
+    async renderCustomersList(customers) {
         if (customers.length === 0) {
             return '<div class="empty-state"><p>No customers yet. Add customers from Party Master.</p></div>';
+        }
+
+        const rows = [];
+        for (const customer of customers) {
+            const balance = await this.partyService.calculatePartyBalance(customer.id);
+            const pending = await this.salesService.getCustomerPending(customer.id);
+            const sales = await this.salesService.getSalesByCustomer(customer.id);
+            const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
+
+            rows.push(`
+                <tr>
+                  <td class="font-medium">${customer.name}</td>
+                  <td>${this.calculator.formatCurrency(totalSales)}</td>
+                  <td class="text-warning">${this.calculator.formatCurrency(pending?.billPending || 0)}</td>
+                  <td class="text-info">${this.calculator.formatCurrency(pending?.cashPending || 0)}</td>
+                  <td class="font-bold text-success">${this.calculator.formatCurrency(balance)}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline add-customer-sale-btn" data-id="${customer.id}">+ Sale</button>
+                    <button class="btn btn-sm btn-success receive-payment-btn" data-id="${customer.id}">💵 Receive</button>
+                    <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${customer.id}">Ledger</button>
+                  </td>
+                </tr>
+              `);
         }
 
         return `
@@ -84,27 +107,7 @@ class CustomersPage {
             </tr>
           </thead>
           <tbody>
-            ${customers.map(customer => {
-            const balance = this.partyService.calculatePartyBalance(customer.id);
-            const pending = this.salesService.getCustomerPending(customer.id);
-            const sales = this.salesService.getSalesByCustomer(customer.id);
-            const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-
-            return `
-                <tr>
-                  <td class="font-medium">${customer.name}</td>
-                  <td>${this.calculator.formatCurrency(totalSales)}</td>
-                  <td class="text-warning">${this.calculator.formatCurrency(pending?.billPending || 0)}</td>
-                  <td class="text-info">${this.calculator.formatCurrency(pending?.cashPending || 0)}</td>
-                  <td class="font-bold text-success">${this.calculator.formatCurrency(balance)}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline add-customer-sale-btn" data-id="${customer.id}">+ Sale</button>
-                    <button class="btn btn-sm btn-success receive-payment-btn" data-id="${customer.id}">💵 Receive</button>
-                    <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${customer.id}">Ledger</button>
-                  </td>
-                </tr>
-              `;
-        }).join('')}
+            ${rows.join('')}
           </tbody>
         </table>
       </div>
@@ -131,10 +134,10 @@ class CustomersPage {
     }
 
     showCustomerSelectionModal() {
-        const customers = this.partyService.getCustomers();
-        const modal = new Modal({
-            title: 'Select Customer',
-            content: `
+        this.partyService.getCustomers().then(customers => {
+            const modal = new Modal({
+                title: 'Select Customer',
+                content: `
         <div class="form-group">
           <label class="form-label">Choose Customer</label>
           <select class="form-select" id="customer-select">
@@ -142,19 +145,20 @@ class CustomersPage {
           </select>
         </div>
       `
-        });
+            });
 
-        modal.open();
-        modal.addFooter([
-            { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
-            {
-                text: 'Next', className: 'btn btn-primary', onClick: () => {
-                    const customerId = document.getElementById('customer-select').value;
-                    modal.close();
-                    this.showSaleInputModal(customerId);
+            modal.open();
+            modal.addFooter([
+                { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+                {
+                    text: 'Next', className: 'btn btn-primary', onClick: () => {
+                        const customerId = document.getElementById('customer-select').value;
+                        modal.close();
+                        this.showSaleInputModal(customerId);
+                    }
                 }
-            }
-        ]);
+            ]);
+        });
     }
 
     showSaleInputModal(customerId) {
@@ -203,7 +207,7 @@ class CustomersPage {
             imageData,
             result.data,
             async (confirmedData) => {
-                const customer = this.partyService.getPartyById(customerId);
+                const customer = await this.partyService.getPartyById(customerId);
 
                 // Show bill/cash split modal
                 this.showBillCashSplitModal(confirmedData, customer, imageData);
@@ -257,8 +261,8 @@ class CustomersPage {
         ]);
     }
 
-    showPaymentModal(customerId) {
-        const customer = this.partyService.getPartyById(customerId);
+    async showPaymentModal(customerId) {
+        const customer = await this.partyService.getPartyById(customerId);
         const modal = new Modal({
             title: 'Receive Payment',
             content: Forms.createCustomerPaymentForm(customer)
@@ -283,10 +287,10 @@ class CustomersPage {
         ]);
     }
 
-    showCustomerLedger(customerId) {
-        const stats = this.partyService.getPartyStats(customerId);
-        const transactions = this.partyService.getPartyTransactions(customerId);
-        const pending = this.salesService.getCustomerPending(customerId);
+    async showCustomerLedger(customerId) {
+        const stats = await this.partyService.getPartyStats(customerId);
+        const transactions = await this.partyService.getPartyTransactions(customerId);
+        const pending = await this.salesService.getCustomerPending(customerId);
 
         const modal = new Modal({
             title: `Customer Ledger - ${stats.party.name}`,

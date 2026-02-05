@@ -51,16 +51,36 @@ class VendorsPage {
         <div class="card-header">
           <h3 class="card-title">Vendor List</h3>
         </div>
-        <div class="card-body">${this.renderVendorsList(vendors)}</div>
+        <div class="card-body">${await this.renderVendorsList(vendors)}</div>
       </div>
     `;
 
     this.setupEventListeners();
   }
 
-  renderVendorsList(vendors) {
+  async renderVendorsList(vendors) {
     if (vendors.length === 0) {
       return '<div class="empty-state"><p>No vendors yet. Add vendors from Party Master.</p></div>';
+    }
+
+    const rows = [];
+    for (const vendor of vendors) {
+      const balance = await this.partyService.calculatePartyBalance(vendor.id);
+      const purchases = await this.purchaseService.getPurchasesByVendor(vendor.id);
+      const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
+
+      rows.push(`
+        <tr>
+          <td class="font-medium">${vendor.name}</td>
+          <td>${this.calculator.formatCurrency(totalPurchases)}</td>
+          <td class="font-bold text-danger">${this.calculator.formatCurrency(balance)}</td>
+          <td>
+            <button class="btn btn-sm btn-outline add-vendor-purchase-btn" data-id="${vendor.id}">+ Purchase</button>
+            <button class="btn btn-sm btn-success add-payment-btn" data-id="${vendor.id}">💵 Payment</button>
+            <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${vendor.id}">Ledger</button>
+          </td>
+        </tr>
+      `);
     }
 
     return `
@@ -75,24 +95,7 @@ class VendorsPage {
             </tr>
           </thead>
           <tbody>
-            ${vendors.map(vendor => {
-      const balance = this.partyService.calculatePartyBalance(vendor.id);
-      const purchases = this.purchaseService.getPurchasesByVendor(vendor.id);
-      const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
-
-      return `
-                <tr>
-                  <td class="font-medium">${vendor.name}</td>
-                  <td>${this.calculator.formatCurrency(totalPurchases)}</td>
-                  <td class="font-bold text-danger">${this.calculator.formatCurrency(balance)}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline add-vendor-purchase-btn" data-id="${vendor.id}">+ Purchase</button>
-                    <button class="btn btn-sm btn-success add-payment-btn" data-id="${vendor.id}">💵 Payment</button>
-                    <button class="btn btn-sm btn-ghost view-ledger-btn" data-id="${vendor.id}">Ledger</button>
-                  </td>
-                </tr>
-              `;
-    }).join('')}
+            ${rows.join('')}
           </tbody>
         </table>
       </div>
@@ -132,30 +135,31 @@ class VendorsPage {
   }
 
   showVendorSelectionModal() {
-    const vendors = this.partyService.getVendors();
-    const modal = new Modal({
-      title: 'Select Vendor',
-      content: `
-        <div class="form-group">
-          <label class="form-label">Choose Vendor</label>
-          <select class="form-select" id="vendor-select">
-            ${vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('')}
-          </select>
-        </div>
-      `
-    });
+    this.partyService.getVendors().then(vendors => {
+      const modal = new Modal({
+        title: 'Select Vendor',
+        content: `
+          <div class="form-group">
+            <label class="form-label">Choose Vendor</label>
+            <select class="form-select" id="vendor-select">
+              ${vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('')}
+            </select>
+          </div>
+        `
+      });
 
-    modal.open();
-    modal.addFooter([
-      { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
-      {
-        text: 'Next', className: 'btn btn-primary', onClick: () => {
-          const vendorId = document.getElementById('vendor-select').value;
-          modal.close();
-          this.showPurchaseInputModal(vendorId);
+      modal.open();
+      modal.addFooter([
+        { text: 'Cancel', className: 'btn btn-ghost', onClick: () => modal.close() },
+        {
+          text: 'Next', className: 'btn btn-primary', onClick: () => {
+            const vendorId = document.getElementById('vendor-select').value;
+            modal.close();
+            this.showPurchaseInputModal(vendorId);
+          }
         }
-      }
-    ]);
+      ]);
+    });
   }
 
   showPurchaseInputModal(vendorId) {
@@ -227,7 +231,7 @@ class VendorsPage {
       imageData,
       result.data,
       async (confirmedData) => {
-        const vendor = this.partyService.getPartyById(vendorId);
+        const vendor = await this.partyService.getPartyById(vendorId);
         const purchaseResult = await this.purchaseService.createPurchase({
           ...result.data,
           ...confirmedData,
@@ -244,8 +248,8 @@ class VendorsPage {
     );
   }
 
-  showPaymentModal(vendorId) {
-    const vendor = this.partyService.getPartyById(vendorId);
+  async showPaymentModal(vendorId) {
+    const vendor = await this.partyService.getPartyById(vendorId);
     const modal = new Modal({
       title: 'Record Payment',
       content: Forms.createVendorPaymentForm(vendor)
@@ -270,9 +274,9 @@ class VendorsPage {
     ]);
   }
 
-  showVendorLedger(vendorId) {
-    const stats = this.partyService.getPartyStats(vendorId);
-    const transactions = this.partyService.getPartyTransactions(vendorId);
+  async showVendorLedger(vendorId) {
+    const stats = await this.partyService.getPartyStats(vendorId);
+    const transactions = await this.partyService.getPartyTransactions(vendorId);
 
     const modal = new Modal({
       title: `Vendor Ledger - ${stats.party.name}`,

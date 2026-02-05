@@ -121,8 +121,8 @@ class StockPage {
         // Export button
         const exportBtn = document.getElementById('export-stock-btn');
         if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
-                const stock = this.stockService.getAllStock();
+            exportBtn.addEventListener('click', async () => {
+                const stock = await this.stockService.getAllStock();
                 window.excelExporter.exportStock(stock);
                 Modal.alert('Success', 'Stock exported to Excel successfully', 'success');
             });
@@ -131,9 +131,9 @@ class StockPage {
         // Search
         const searchInput = document.getElementById('search-stock');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            searchInput.addEventListener('input', async (e) => {
                 const query = e.target.value;
-                const stock = query ? this.stockService.searchStock(query) : this.stockService.getAllStock();
+                const stock = query ? await this.stockService.searchStock(query) : await this.stockService.getAllStock();
                 const tableContainer = document.querySelector('.card-body');
                 tableContainer.innerHTML = this.renderStockTable(stock);
                 this.setupTableListeners();
@@ -153,9 +153,9 @@ class StockPage {
         });
     }
 
-    showMovementHistory(stockId) {
-        const item = this.stockService.getStockById(stockId);
-        const movements = this.stockService.getStockMovements(stockId);
+    async showMovementHistory(stockId) {
+        const item = await this.stockService.getStockById(stockId);
+        const movements = await this.stockService.getStockMovements(stockId);
 
         const modal = new Modal({
             title: `Stock Movements - ${item.name}`,
