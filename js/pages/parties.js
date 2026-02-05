@@ -69,15 +69,14 @@ class PartiesPage {
             </tr>
           </thead>
           <tbody>
-            ${parties.map(async party => {
-            const balance = await this.partyService.calculatePartyBalance(party.id);
+            ${parties.map(party => {
             return `
                 <tr data-party-id="${party.id}">
                   <td><span class="badge badge-${party.type === 'Vendor' ? 'primary' : 'success'}">${party.type}</span></td>
                   <td class="font-medium">${party.name}</td>
                   <td>${party.phone || '-'}</td>
                   <td>${this.calculator.formatCurrency(party.openingBalance)}</td>
-                  <td class="font-bold">${this.calculator.formatCurrency(balance)}</td>
+                  <td class="font-bold">${this.calculator.formatCurrency(party.currentBalance || 0)}</td>
                   <td>
                     <button class="btn btn-sm btn-outline view-party-btn" data-id="${party.id}">View</button>
                     <button class="btn btn-sm btn-ghost edit-party-btn" data-id="${party.id}">Edit</button>

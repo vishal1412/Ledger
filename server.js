@@ -9,8 +9,31 @@ const mongoHelper = require('./api/mongodb-helper');
 const app = express();
 const PORT = 3000;
 
+// CORS Configuration - Allow GitHub Pages and localhost
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://localhost:5500',
+            'http://127.0.0.1:3000',
+            'https://vishal1412.github.io',
+            'https://ledger-kappa-sage.vercel.app',
+            'https://ledger-c3muaaf6g-vishalsethi14-2174s-projects.vercel.app'
+        ];
+        
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static('.')); // Serve the frontend from current directory
 

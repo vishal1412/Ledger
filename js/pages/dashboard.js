@@ -70,7 +70,7 @@ class DashboardPage {
             <h3 class="card-title">Recent Activity</h3>
           </div>
           <div class="card-body">
-            ${this.renderRecentActivity()}
+            ${await this.renderRecentActivity()}
           </div>
         </div>
 
@@ -80,7 +80,7 @@ class DashboardPage {
               <h3 class="card-title">⚠️ Low Stock Alerts</h3>
             </div>
             <div class="card-body">
-              ${this.renderLowStockAlerts()}
+              ${await this.renderLowStockAlerts()}
             </div>
           </div>
         ` : ''}
@@ -105,7 +105,6 @@ class DashboardPage {
         for (const c of customers) {
             totalReceivable += await this.partyService.calculatePartyBalance(c.id);
         }
-        }, 0);
 
         return {
             totalVendors: vendors.length,
