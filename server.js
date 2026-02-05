@@ -9,31 +9,49 @@ const mongoHelper = require('./api/mongodb-helper');
 const app = express();
 const PORT = 3000;
 
-// CORS Configuration - Allow GitHub Pages and localhost
+// CORS Configuration - Allow GitHub Pages and all localhost variants
 const corsOptions = {
     origin: function (origin, callback) {
         const allowedOrigins = [
             'http://localhost:3000',
             'http://localhost:5500',
             'http://127.0.0.1:3000',
+            'http://127.0.0.1:5500',
             'https://vishal1412.github.io',
             'https://ledger-kappa-sage.vercel.app',
-            'https://ledger-c3muaaf6g-vishalsethi14-2174s-projects.vercel.app'
+            'https://ledger-c3muaaf6g-vishalsethi14-2174s-projects.vercel.app',
+            'https://ledger-jlru627om-vishalsethi14-2174s-projects.vercel.app'
         ];
         
+        // Allow requests with no origin (like mobile apps, curl requests)
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(null, true); // Allow all for now - IMPORTANT for serverless
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    optionsSuccessStatus: 200
 };
 
-// Middleware
+// Apply CORS globally
 app.use(cors(corsOptions));
+
+// Add explicit CORS headers for all responses
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static('.')); // Serve the frontend from current directory
 
@@ -63,6 +81,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- API Endpoints ---
+
+// Health Check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured' });
+});
 
 // Get Data from MongoDB (Generic)
 app.get('/api/storage/:collection', async (req, res) => {

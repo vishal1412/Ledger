@@ -16,7 +16,7 @@ class StorageManager {
 
   async checkServerConnection() {
     try {
-      const response = await fetch(`${this.serverUrl}/storage/settings`);
+      const response = await fetch(`${this.serverUrl}/health`);
       this.isOnline = response.ok;
       if (this.isOnline) {
         console.log('✅ Connected to MongoDB Storage Server');
