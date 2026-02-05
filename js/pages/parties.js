@@ -9,8 +9,8 @@ class PartiesPage {
     }
 
     // Render parties page
-    render(container) {
-        const parties = this.partyService.getAllParties();
+    async render(container) {
+        const parties = await this.partyService.getAllParties();
 
         container.innerHTML = `
       <div class="page-header">
@@ -69,8 +69,8 @@ class PartiesPage {
             </tr>
           </thead>
           <tbody>
-            ${parties.map(party => {
-            const balance = this.partyService.calculatePartyBalance(party.id);
+            ${parties.map(async party => {
+            const balance = await this.partyService.calculatePartyBalance(party.id);
             return `
                 <tr data-party-id="${party.id}">
                   <td><span class="badge badge-${party.type === 'Vendor' ? 'primary' : 'success'}">${party.type}</span></td>

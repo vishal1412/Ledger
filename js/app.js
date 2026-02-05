@@ -78,7 +78,7 @@ class App {
     }
 
     // Load page
-    loadPage(pageName) {
+    async loadPage(pageName) {
         console.log(`Loading page: ${pageName}`);
 
         const page = this.pages[pageName];
@@ -95,7 +95,7 @@ class App {
 
         try {
             // Render page
-            page.render(container);
+            await page.render(container);
             this.currentPage = pageName;
 
             // Update URL hash
