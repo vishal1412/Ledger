@@ -229,6 +229,99 @@ class Forms {
         };
     }
 
+    // Create manual sale form
+    static createManualSaleForm(customer) {
+        return `
+      <form id="manual-sale-form">
+        <div class="alert alert-info">
+          <strong>${customer.name}</strong>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Sale Date</label>
+          <input type="date" class="form-input" id="sale-date" 
+                 value="${new Date().toISOString().split('T')[0]}" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Items</label>
+          <div id="sale-items-container">
+            <div class="item-row" data-item-index="0">
+              <input type="text" class="form-input" placeholder="Item name" data-field="name" required />
+              <input type="number" class="form-input" placeholder="Qty" data-field="quantity" min="0.01" step="0.01" required />
+              <input type="number" class="form-input" placeholder="Rate" data-field="rate" min="0.01" step="0.01" required />
+              <input type="number" class="form-input" placeholder="Amount" data-field="amount" readonly />
+              <button type="button" class="btn btn-sm btn-ghost remove-item-btn">✕</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline mt-sm" id="add-sale-item-btn">+ Add Item</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required">Total Amount</label>
+          <input type="number" step="0.01" class="form-input" id="sale-total" 
+                 required min="0" readonly />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Bill Amount</label>
+            <input type="number" step="0.01" class="form-input" id="sale-bill-amount" min="0" value="0" />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Cash Amount</label>
+            <input type="number" step="0.01" class="form-input" id="sale-cash-amount" min="0" value="0" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="sale-notes" placeholder="Optional notes"></textarea>
+        </div>
+      </form>
+      
+      <style>
+        .item-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr auto;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          align-items: center;
+        }
+      </style>
+    `;
+    }
+
+    // Get manual sale form data
+    static getManualSaleFormData() {
+        const items = [];
+        const itemRows = document.querySelectorAll('#sale-items-container .item-row');
+        
+        itemRows.forEach(row => {
+            const name = row.querySelector('[data-field="name"]').value;
+            const quantity = parseFloat(row.querySelector('[data-field="quantity"]').value) || 0;
+            const rate = parseFloat(row.querySelector('[data-field="rate"]').value) || 0;
+            
+            if (name && quantity > 0 && rate > 0) {
+                items.push({
+                    name: name.trim(),
+                    quantity: quantity,
+                    rate: rate,
+                    amount: quantity * rate
+                });
+            }
+        });
+        
+        return {
+            date: document.getElementById('sale-date').value,
+            items: items,
+            total: parseFloat(document.getElementById('sale-total').value) || 0,
+            billAmount: parseFloat(document.getElementById('sale-bill-amount').value) || 0,
+            cashAmount: parseFloat(document.getElementById('sale-cash-amount').value) || 0,
+            notes: document.getElementById('sale-notes').value
+        };
+    }
+
     // Get payment form data
     static getPaymentFormData() {
         return {

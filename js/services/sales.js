@@ -181,6 +181,7 @@ class SalesService {
             return {
                 success: true,
                 data: {
+                    isSale: true, // Flag to show bill/cash fields in OCR preview
                     customerId,
                     customerName: customer?.name || result.data.partyName,
                     date: result.data.date,

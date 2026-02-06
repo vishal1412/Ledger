@@ -15,6 +15,7 @@ class OCRPreview {
     render(container) {
         const corrections = this.ocrData.corrections || {};
         const hasCorrections = corrections.totalCorrections > 0;
+        const isSale = this.ocrData.isSale || false; // Check if it's a sale transaction
 
         container.innerHTML = `
       <div class="ocr-preview">
@@ -57,13 +58,28 @@ class OCRPreview {
           <div class="form-group">
             <label class="form-label font-bold text-lg">Total Amount</label>
             <input type="number" step="0.01" class="form-input ${this.ocrData.totalWasCorrected ? 'error' : ''}" 
-                   id="ocr-total" value="${this.ocrData.total || 0}" />
+                   id="ocr-total" value="${this.ocrData.total || 0}" readonly />
             ${this.ocrData.totalWasCorrected ? `
               <span class="form-error">
                 Auto-corrected from ${window.calculator.formatCurrency(this.ocrData.originalTotal)}
               </span>
             ` : ''}
           </div>
+
+          ${isSale ? `
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Bill Amount</label>
+                <input type="number" step="0.01" class="form-input" id="ocr-bill-amount" 
+                       value="${this.ocrData.total || 0}" min="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cash Amount</label>
+                <input type="number" step="0.01" class="form-input" id="ocr-cash-amount" 
+                       value="0" min="0" />
+              </div>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -217,6 +233,8 @@ class OCRPreview {
         const partyName = document.getElementById('ocr-party-name')?.value || '';
         const date = document.getElementById('ocr-date')?.value || '';
         const total = parseFloat(document.getElementById('ocr-total')?.value) || 0;
+        const billAmount = parseFloat(document.getElementById('ocr-bill-amount')?.value) || 0;
+        const cashAmount = parseFloat(document.getElementById('ocr-cash-amount')?.value) || 0;
 
         // Get line items
         const items = this.ocrData.items.map((item, index) => {
@@ -238,6 +256,8 @@ class OCRPreview {
             date,
             items,
             total,
+            billAmount,
+            cashAmount,
             ocrData: {
                 rawText: this.ocrData.rawText,
                 confidence: this.ocrData.confidence
@@ -249,7 +269,7 @@ class OCRPreview {
     static showInModal(imageData, ocrData, onConfirm, onCancel) {
         const modal = new Modal({
             title: 'Review & Confirm OCR Data',
-            size: 'large'
+            size: 'extra-large'
         });
 
         const preview = new OCRPreview({
