@@ -1,16 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm install",
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "MONGODB_URI": "@mongodb_uri"
-  },
-  "functions": {
-    "server.js": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
   "routes": [
     {
       "src": "/(.*)",
