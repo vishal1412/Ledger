@@ -30,7 +30,8 @@ class App {
                 parties: new PartiesPage(),
                 vendors: new VendorsPage(),
                 customers: new CustomersPage(),
-                stock: new StockPage()
+                stock: new StockPage(),
+                aiAssistant: new AIAssistant()
             };
             console.log('✓ Pages initialized successfully');
         } catch (error) {

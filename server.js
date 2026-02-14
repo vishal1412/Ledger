@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const mongoHelper = require('./api/mongodb-helper');
+const aiRoutes = require('./api/aiRoutes');
 
 const app = express();
 const PORT = 3000;
@@ -127,6 +128,9 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
         filename: req.file.filename
     });
 });
+
+// --- AI Assistant Routes ---
+aiRoutes(app);
 
 // Start Server
 app.listen(PORT, () => {

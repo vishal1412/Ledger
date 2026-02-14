@@ -10,7 +10,8 @@ class Navigation {
       parties: { title: 'Parties', icon: '👥' },
       vendors: { title: 'Vendors', icon: '🏭' },
       customers: { title: 'Customers', icon: '🧾' },
-      stock: { title: 'Stock', icon: '📦' }
+      stock: { title: 'Stock', icon: '📦' },
+      aiAssistant: { title: 'AI Assistant', icon: '🤖' }
     };
   }
 

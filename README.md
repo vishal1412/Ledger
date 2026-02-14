@@ -1,8 +1,10 @@
 # Business Ledger & Stock Management Application
 
+> 🤖 **NEW**: AI Assistant integration now available! Use natural language to manage your entire business. [See below](#-ai-assistant).
+
 > ⚡ **IMPORTANT**: This application has been migrated to **MongoDB-only storage**. All data is now persisted in MongoDB exclusively. See [MONGODB_MIGRATION.md](./MONGODB_MIGRATION.md) for migration details and important breaking changes.
 
-A comprehensive web-based business ledger and stock management system with OCR-based document processing, automated calculations, and detailed financial tracking.
+A comprehensive web-based business ledger and stock management system with OCR-based document processing, automated calculations, detailed financial tracking, and **AI-powered natural language interface**.
 
 ## 🌟 Key Features
 
@@ -13,6 +15,7 @@ A comprehensive web-based business ledger and stock management system with OCR-b
 - **Customer Management**: Sales entry with bill/cash split, payment collection.
 - **Stock Management**: Auto-updated inventory from purchases/sales.
 - **Dashboards**: Real-time business overview and analytics.
+- **🤖 AI Assistant**: Natural language interface powered by GPT-4 (NEW!)
 
 ### 💾 Data Persistence
 
@@ -78,6 +81,59 @@ node server.js
 ```
 
 The application will start at: **http://localhost:3000**
+
+---
+
+## 🤖 AI Assistant
+
+**NEW!** Your Ledger system now includes an AI Assistant powered by OpenAI GPT-4.
+
+### What You Can Do
+
+Use natural language to:
+- ✅ Add vendors and customers
+- ✅ Record purchases and sales
+- ✅ Process payments
+- ✅ Manage stock
+- ✅ Upload and extract bills via images
+- ✅ Get financial reports
+- ✅ Ask business questions
+
+### Quick Example
+
+```
+User: "I received 50 cement bags from Ramesh Traders at 350 per bag"
+
+AI Response:
+✓ Purchase order created
+✓ Stock updated: +50 bags
+✓ Payable updated: +₹17,500
+```
+
+### Getting Started with AI
+
+**Setup (5 minutes):**
+1. Get OpenAI API key: https://platform.openai.com/api-keys
+2. Set environment variable: `OPENAI_API_KEY=sk_...`
+3. Start server: `npm start`
+4. Open: http://localhost:3000/#aiAssistant
+
+**Read the guides:**
+- [AI_ASSISTANT_QUICK_START.md](./AI_ASSISTANT_QUICK_START.md) - Quick reference
+- [AI_ASSISTANT_GUIDE.md](./AI_ASSISTANT_GUIDE.md) - Complete documentation
+- [CONFIGURATION_CHECKLIST.md](./CONFIGURATION_CHECKLIST.md) - Setup checklist
+
+### AI Features
+
+| Feature | Description |
+|---------|-------------|
+| **Natural Language** | Understand business context naturally |
+| **Multi-tool** | 10 business tools available |
+| **Bill Extraction** | Upload images for automatic OCR |
+| **Conversation** | Multi-turn dialogue support |
+| **Confirmation** | Review transactions before executing |
+| **Real-time** | Instant updates to dashboard |
+| **Mobile Ready** | Works on all devices |
 
 ---
 

@@ -30,7 +30,10 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "multer": "^2.0.2",
-    "mongodb": "^6.3.0"
+    "mongodb": "^6.3.0",
+    "openai": "^4.52.0",
+    "zod": "^3.22.4",
+    "jsonwebtoken": "^9.1.2"
   },
   "devDependencies": {
     "@vercel/node": "^3.0.0"
