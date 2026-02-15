@@ -88,7 +88,13 @@ const upload = multer({ storage: storage });
 
 // Health Check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured' });
+    res.header('Access-Control-Allow-Origin', '*');
+    res.json({ 
+        status: 'ok', 
+        mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured',
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Get Data from MongoDB (Generic)
