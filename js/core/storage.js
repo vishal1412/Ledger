@@ -4,7 +4,9 @@
 
 class StorageManager {
   constructor() {
-    this.serverUrl = 'https://ledger-kappa-sage.vercel.app/api';
+    // Use localhost for local development, Vercel for production
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    this.serverUrl = isDevelopment ? 'http://localhost:3000/api' : 'https://ledger-kappa-sage.vercel.app/api';
     this.isOnline = false;
     this.imagePath = './images/';
     this.cache = {}; // In-memory cache for performance
