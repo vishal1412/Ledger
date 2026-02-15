@@ -1,0 +1,42 @@
+{
+  "name": "business-ledger",
+  "version": "1.0.0",
+  "description": "A comprehensive web-based business ledger and stock management system with OCR-based document processing, automated calculations, and detailed financial tracking.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "node server.js",
+    "vercel-build": "echo 'Vercel serverless functions ready'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vishal1412/Ledger.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vishal1412/Ledger/issues"
+  },
+  "homepage": "https://github.com/vishal1412/Ledger#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "mongodb": "^6.3.0",
+    "openai": "^4.52.0",
+    "zod": "^3.22.4",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
+  }
+}
