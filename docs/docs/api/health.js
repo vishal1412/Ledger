@@ -1,4 +1,6 @@
 // Vercel serverless function for health check
+const { MongoClient } = require('mongodb');
+
 module.exports = async (req, res) => {
   // Enable CORS - MUST be first
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,12 +13,38 @@ module.exports = async (req, res) => {
   }
 
   if (req.method === 'GET') {
+    let mongoStatus = 'not configured';
+    let mongoError = null;
+    
+    if (process.env.MONGODB_URI) {
+      try {
+        // Quick MongoDB connection test with timeout
+        const client = new MongoClient(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 5000,
+          connectTimeoutMS: 5000,
+        });
+        
+        await client.connect();
+        await client.db('business_ledger').admin().ping();
+        await client.close();
+        
+        mongoStatus = 'connected';
+      } catch (error) {
+        mongoStatus = 'error';
+        mongoError = error.message;
+      }
+    }
+    
     return res.status(200).json({
       status: 'ok',
       message: 'Business Ledger API Server is running on Vercel',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
-      mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
+      mongodb: mongoStatus,
+      mongodbUri: process.env.MONGODB_URI ? 'set' : 'not set',
+      mongoError: mongoError,
+      environment: process.env.NODE_ENV || 'production'
     });
   }
 
