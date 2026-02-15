@@ -1,3 +1,6 @@
+api/alerts.js
+api/debug-env.js
+api/settings.js
 docs/
 .git
 node_modules/
