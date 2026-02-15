@@ -1,8 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
+  "framework": null,
   "functions": {
     "api/*.js": {
+      "runtime": "nodejs18.x",
       "memory": 512,
       "maxDuration": 30
     }
@@ -11,6 +12,10 @@
     {
       "src": "/api/(.*)",
       "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*\\..*)",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
