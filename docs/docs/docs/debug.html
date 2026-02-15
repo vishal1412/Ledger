@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Business Ledger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+
+        .debug-section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        pre {
+            background: #f0f0f0;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.25rem;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Business Ledger Debug Page</h1>
+
+    <div class="debug-section">
+        <h2>1. File Loading Check</h2>
+        <div id="file-check">Checking...</div>
+    </div>
+
+    <div class="debug-section">
+        <h2>2. Service Initialization Check</h2>
+        <div id="service-check">Checking...</div>
+    </div>
+
+    <div class="debug-section">
+        <h2>3. Page Class Check</h2>
+        <div id="page-check">Checking...</div>
+    </div>
+
+    <div class="debug-section">
+        <h2>4. Test Page Rendering</h2>
+        <button onclick="testDashboard()">Test Dashboard Render</button>
+        <button onclick="testParties()">Test Parties Render</button>
+        <div id="test-output" style="margin-top: 1rem; min-height: 200px; border: 1px solid #ccc; padding: 1rem;"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>5. Console Errors</h2>
+        <pre id="console-errors">No errors captured yet. Check browser console (F12) for live errors.</pre>
+    </div>
+
+    <!-- Load all scripts -->
+    <script src="./js/core/storage.js"></script>
+    <script src="./js/core/calculator.js"></script>
+    <script src="./js/core/ocr.js"></script>
+    <script src="./js/core/export.js"></script>
+    <script src="./js/services/party.js"></script>
+    <script src="./js/services/stock.js"></script>
+    <script src="./js/services/purchase.js"></script>
+    <script src="./js/services/sales.js"></script>
+    <script src="./js/services/payment.js"></script>
+    <script src="./js/components/modal.js"></script>
+    <script src="./js/components/camera.js"></script>
+    <script src="./js/components/ocr-preview.js"></script>
+    <script src="./js/components/navigation.js"></script>
+    <script src="./js/components/forms.js"></script>
+    <script src="./js/pages/dashboard.js"></script>
+    <script src="./js/pages/parties.js"></script>
+    <script src="./js/pages/vendors.js"></script>
+    <script src="./js/pages/customers.js"></script>
+    <script src="./js/pages/stock.js"></script>
+
+    <script>
+        // Capture console errors
+        const errors = [];
+        const originalError = console.error;
+        console.error = function (...args) {
+            errors.push(args.join(' '));
+            document.getElementById('console-errors').textContent = errors.join('\n');
+            originalError.apply(console, args);
+        };
+
+        // Check file loading
+        setTimeout(() => {
+            const fileCheck = document.getElementById('file-check');
+            const checks = [];
+
+            checks.push(`Storage class: ${typeof StorageManager !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`Calculator class: ${typeof CalculationValidator !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`DashboardPage class: ${typeof DashboardPage !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`PartiesPage class: ${typeof PartiesPage !== 'undefined' ? '✓' : '✗'}`);
+
+            fileCheck.innerHTML = checks.join('<br>');
+        }, 500);
+
+        // Check service initialization
+        setTimeout(() => {
+            const serviceCheck = document.getElementById('service-check');
+            const checks = [];
+
+            checks.push(`window.storage: ${typeof window.storage !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`window.calculator: ${typeof window.calculator !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`window.partyService: ${typeof window.partyService !== 'undefined' ? '✓' : '✗'}`);
+            checks.push(`window.stockService: ${typeof window.stockService !== 'undefined' ? '✓' : '✗'}`);
+
+            serviceCheck.innerHTML = checks.join('<br>');
+        }, 600);
+
+        // Check page classes
+        setTimeout(() => {
+            const pageCheck = document.getElementById('page-check');
+            const checks = [];
+
+            try {
+                const dashboard = new DashboardPage();
+                checks.push(`DashboardPage instantiation: ✓`);
+            } catch (e) {
+                checks.push(`DashboardPage instantiation: ✗ ${e.message}`);
+            }
+
+            try {
+                const parties = new PartiesPage();
+                checks.push(`PartiesPage instantiation: ✓`);
+            } catch (e) {
+                checks.push(`PartiesPage instantiation: ✗ ${e.message}`);
+            }
+
+            pageCheck.innerHTML = checks.join('<br>');
+        }, 700);
+
+        // Test functions
+        function testDashboard() {
+            const output = document.getElementById('test-output');
+            try {
+                const dashboard = new DashboardPage();
+                const testContainer = document.createElement('div');
+                dashboard.render(testContainer);
+                output.innerHTML = '<div class="success">✓ Dashboard rendered successfully!</div>' + testContainer.innerHTML;
+            } catch (e) {
+                output.innerHTML = '<div class="error">✗ Error: ' + e.message + '</div><pre>' + e.stack + '</pre>';
+            }
+        }
+
+        function testParties() {
+            const output = document.getElementById('test-output');
+            try {
+                const parties = new PartiesPage();
+                const testContainer = document.createElement('div');
+                parties.render(testContainer);
+                output.innerHTML = '<div class="success">✓ Parties rendered successfully!</div>' + testContainer.innerHTML;
+            } catch (e) {
+                output.innerHTML = '<div class="error">✗ Error: ' + e.message + '</div><pre>' + e.stack + '</pre>';
+            }
+        }
+    </script>
+</body>
+
+</html>
