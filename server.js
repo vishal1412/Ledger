@@ -1,4 +1,5 @@
 const express = require('express');
+const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs');
@@ -6,8 +7,11 @@ const path = require('path');
 const multer = require('multer');
 const mongoHelper = require('./api/mongodb-helper');
 
+// Load environment variables
+dotenv.config();
+
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // CORS Configuration - Allow GitHub Pages and all localhost variants
 const corsOptions = {
