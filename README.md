@@ -39,11 +39,14 @@ This application now uses **MongoDB exclusively** for all data storage:
 Deploy to Vercel with MongoDB in under 10 minutes:
 
 ```powershell
-# Run automated deployment script
+# Standard deployment (main project)
 .\deploy-vercel.ps1
+
+# OR for a separate Vercel project + MongoDB account
+.\deploy-vercel-separate.ps1
 ```
 
-**Tip:** Use the `separate-vercel-db` branch (or any feature branch) to keep your own Vercel project and MongoDB Atlas account isolated from the main branch.
+**Tip:** Use the `separate-vercel-db` branch to keep your own Vercel project and MongoDB Atlas account isolated from the main branch. Then run `.\deploy-vercel-separate.ps1` to deploy to a different Vercel project.
 
 For local development, copy the sample env file:
 
@@ -51,7 +54,7 @@ For local development, copy the sample env file:
 copy .env.example .env
 ```
 
-Or set the same variables in Vercel’s **Project Settings → Environment Variables**.
+Then edit `.env` to add your MongoDB URI. Or set the same variables in Vercel's **Project Settings → Environment Variables**.
 
 Or follow the guides:
 - **[QUICK_DEPLOY.md](./QUICK_DEPLOY.md)** - 10-minute quick start
