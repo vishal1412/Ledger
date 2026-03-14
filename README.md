@@ -43,6 +43,16 @@ Deploy to Vercel with MongoDB in under 10 minutes:
 .\deploy-vercel.ps1
 ```
 
+**Tip:** Use the `separate-vercel-db` branch (or any feature branch) to keep your own Vercel project and MongoDB Atlas account isolated from the main branch.
+
+For local development, copy the sample env file:
+
+```powershell
+copy .env.example .env
+```
+
+Or set the same variables in Vercel’s **Project Settings → Environment Variables**.
+
 Or follow the guides:
 - **[QUICK_DEPLOY.md](./QUICK_DEPLOY.md)** - 10-minute quick start
 - **[MONGODB_SETUP.md](./MONGODB_SETUP.md)** - MongoDB Atlas configuration
