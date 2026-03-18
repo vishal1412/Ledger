@@ -1,10 +1,10 @@
 # Business Ledger - Vercel Deployment Script for Separate Project
 # This script deploys to a separate Vercel project + MongoDB Atlas account
-# Use this when you want an isolated deployment (e.g., staging, testing, or personal account)
+# Configured for: https://vercel.com/vishalsethi14-2174s-projects/ledger-qa
 
 Write-Host "Business Ledger - Separate Vercel Deployment" -ForegroundColor Cyan
 Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host "This script will help you deploy to a separate Vercel project" -ForegroundColor Gray
+Write-Host "Project: https://vercel.com/vishalsethi14-2174s-projects/ledger-qa" -ForegroundColor Gray
 Write-Host ""
 
 # Check if Node.js is installed
@@ -62,105 +62,107 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "SEPARATE VERCEL PROJECT SETUP" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "VERCEL PROJECT LINK" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
 # Check if this project is already linked to Vercel
 Write-Host "Checking Vercel project link..." -ForegroundColor Yellow
 
-# Look for .vercel/project.json to see if there's an existing link
 $vercelProjectPath = ".\.vercel\project.json"
 $isLinked = Test-Path $vercelProjectPath
 
 if ($isLinked) {
-    Write-Host "Found existing Vercel project link." -ForegroundColor Yellow
-    $response = Read-Host "Do you want to link a DIFFERENT Vercel project? (Y/N)"
-    
-    if ($response -eq "Y" -or $response -eq "y") {
-        Write-Host ""
-        Write-Host "Unlinking current project..." -ForegroundColor Yellow
-        Remove-Item ".\.vercel" -Recurse -Force
-        Write-Host "Current project link removed." -ForegroundColor Green
-    } else {
-        Write-Host "Using existing project link." -ForegroundColor Gray
-    }
+    Write-Host "Found existing Vercel project link." -ForegroundColor Green
+    $projectJson = Get-Content $vercelProjectPath | ConvertFrom-Json
+    Write-Host "Current project ID: $($projectJson.projectId)" -ForegroundColor Gray
 } else {
-    Write-Host "No existing Vercel project link found. Creating a new one..." -ForegroundColor Gray
+    Write-Host "No existing Vercel project link found." -ForegroundColor Yellow
 }
 
+# Prompt to link/relink to ledger-qa
 Write-Host ""
+Write-Host "This will link to: ledger-qa (vishalsethi14-2174s-projects)" -ForegroundColor Cyan
+$response = Read-Host "Link to ledger-qa project? (Y/N)"
+
+if ($response -eq "Y" -or $response -eq "y") {
+    Write-Host ""
+    Write-Host "Linking to ledger-qa project..." -ForegroundColor Yellow
+    
+    # Remove existing link if present
+    if (Test-Path ".\.vercel") {
+        Remove-Item ".\.vercel" -Recurse -Force
+    }
+    
+    # Use vercel link to connect to the specific project
+    # This will prompt you to confirm the project
+    vercel link
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host ""
+        Write-Host "Successfully linked to ledger-qa project!" -ForegroundColor Green
+    } else {
+        Write-Host ""
+        Write-Host "Failed to link project" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host ""
+    Write-Host "Skipping project link" -ForegroundColor Yellow
+}
 
 # Environment setup
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "ENVIRONMENT VARIABLES SETUP" -ForegroundColor Cyan
+Write-Host "ENVIRONMENT VARIABLES" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "IMPORTANT: Before deploying, you need:" -ForegroundColor Yellow
-Write-Host "   1. A separate Vercel account (or team project)" -ForegroundColor White
-Write-Host "   2. A separate MongoDB Atlas account/cluster" -ForegroundColor White
-Write-Host "   3. Your new MongoDB connection string (MONGODB_URI)" -ForegroundColor White
+Write-Host "MONGODB_URI should be configured in:" -ForegroundColor Yellow
+Write-Host "   https://vercel.com/vishalsethi14-2174s-projects/ledger-qa/settings/environment-variables" -ForegroundColor White
 Write-Host ""
 
-# Check for .env file
+# Check for .env file just for local reference
 $envPath = ".\.env"
 if (Test-Path $envPath) {
-    Write-Host ".env file found!" -ForegroundColor Green
-    $envContent = Get-Content $envPath
-    if ($envContent -match "MONGODB_URI") {
-        Write-Host "   ✓ MONGODB_URI is set" -ForegroundColor Green
-    } else {
-        Write-Host "   ⚠ MONGODB_URI is NOT set in .env" -ForegroundColor Yellow
-        Write-Host "   Add it before deploying!" -ForegroundColor Yellow
-    }
+    Write-Host ".env file exists locally" -ForegroundColor Green
 } else {
-    Write-Host ".env file not found. Creating from template..." -ForegroundColor Yellow
-    if (Test-Path ".\.env.example") {
-        Copy-Item ".\.env.example" ".\.env"
-        Write-Host "Created .env from .env.example" -ForegroundColor Green
-        Write-Host "Edit .env and add your MongoDB URI:" -ForegroundColor Yellow
-        Write-Host "   code .env" -ForegroundColor Gray
-    }
+    Write-Host "No local .env file (optional for remote deployment)" -ForegroundColor Gray
 }
 
 Write-Host ""
 
 # Prompt user
-Write-Host "Ready to deploy to separate Vercel project?" -ForegroundColor Cyan
+Write-Host "Ready to deploy to ledger-qa?" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "The next step will:" -ForegroundColor Gray
-Write-Host "   1. Link/create a new Vercel project" -ForegroundColor Gray
-Write-Host "   2. Deploy your code" -ForegroundColor Gray
-Write-Host "   3. Guide you through setting environment variables" -ForegroundColor Gray
+Write-Host "   1. Install npm dependencies" -ForegroundColor Gray
+Write-Host "   2. Deploy to ledger-qa project" -ForegroundColor Gray
+Write-Host "   3. Show you the deployment URL" -ForegroundColor Gray
 Write-Host ""
 
 $response = Read-Host "Proceed? (Y/N)"
 
 if ($response -eq "Y" -or $response -eq "y") {
     Write-Host ""
-    Write-Host "Starting Vercel deployment..." -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "When prompted:" -ForegroundColor Cyan
-    Write-Host "   • Set up and deploy? → Y" -ForegroundColor Gray
-    Write-Host "   • Which scope? → Your account/team" -ForegroundColor Gray
-    Write-Host "   • Link to existing project? → Y/N (your choice)" -ForegroundColor Gray
-    Write-Host "   • What's your project name? → Choose a unique name (e.g., ledger-staging)" -ForegroundColor Gray
+    Write-Host "Starting deployment to ledger-qa..." -ForegroundColor Yellow
     Write-Host ""
     
-    # Deploy to Vercel (without --prod, so it creates a preview/staging first)
-    vercel
+    # Deploy to Vercel (production)
+    vercel --prod
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "Project link successful!" -ForegroundColor Green
+        Write-Host "Deployment successful!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Next steps:" -ForegroundColor Cyan
-        Write-Host "   1. Go to Vercel Dashboard: https://vercel.com/dashboard" -ForegroundColor White
-        Write-Host "   2. Select your NEW project" -ForegroundColor White
-        Write-Host "   3. Go to Settings → Environment Variables" -ForegroundColor White
-        Write-Host "   4. Add MONGODB_URI with your SEPARATE Atlas connection string" -ForegroundColor White
-        Write-Host "   5. Redeploy with: vercel --prod" -ForegroundColor White
-        Write-Host "   6. Test: https://your-project-name.vercel.app/api/health" -ForegroundColor White
+        Write-Host "   1. Go to project: https://vercel.com/vishalsethi14-2174s-projects/ledger-qa" -ForegroundColor White
+        Write-Host "   2. Environment variables should be pre-configured" -ForegroundColor White
+        Write-Host "   3. Test your deployment: vercel env pull && npm run test" -ForegroundColor White
         Write-Host ""
-        Write-Host "Or use this script again when ready:" -ForegroundColor Gray
-        Write-Host "   .\deploy-vercel-separate.ps1" -ForegroundColor Gray
+        Write-Host "Documentation:" -ForegroundColor Cyan
+        Write-Host "   • Project link: https://vercel.com/vishalsethi14-2174s-projects/ledger-qa" -ForegroundColor White
+        Write-Host "   • View logs: vercel logs" -ForegroundColor Gray
+        Write-Host "   • Rollback: vercel rollback" -ForegroundColor Gray
     } else {
         Write-Host ""
         Write-Host "Deployment encountered an issue" -ForegroundColor Yellow
@@ -170,15 +172,13 @@ if ($response -eq "Y" -or $response -eq "y") {
 } else {
     Write-Host ""
     Write-Host "Deployment cancelled" -ForegroundColor Yellow
-    Write-Host "   1. Set up your MongoDB Atlas account: https://cloud.mongodb.com" -ForegroundColor White
-    Write-Host "   2. Get your connection string" -ForegroundColor White
-    Write-Host "   3. Add it to .env file" -ForegroundColor White
-    Write-Host "   4. Run this script when ready: .\deploy-vercel-separate.ps1" -ForegroundColor White
+    Write-Host "   Ensure MONGODB_URI is set in ledger-qa environment variables" -ForegroundColor White
+    Write-Host "   Then run: .\deploy-vercel-separate.ps1" -ForegroundColor White
 }
 
 Write-Host ""
 Write-Host "Documentation:" -ForegroundColor Cyan
+Write-Host "   • Project: ledger-qa (https://vercel.com/vishalsethi14-2174s-projects/ledger-qa)" -ForegroundColor White
 Write-Host "   • Branch: separate-vercel-db (git checkout separate-vercel-db)" -ForegroundColor White
 Write-Host "   • Setup guide: MONGODB_SETUP.md" -ForegroundColor White
-Write-Host "   • Quick start: QUICK_DEPLOY.md" -ForegroundColor White
 Write-Host ""
